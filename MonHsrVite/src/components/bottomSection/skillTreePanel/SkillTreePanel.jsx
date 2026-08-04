@@ -1,33 +1,12 @@
-import { sanitizeAndFormatDescription } from "../../characterComp/CharacterDetails";
-import useSkillTree, {
-  getNodeStyle,
-  isStatNode,
-  isMainSkill,
-  getLocalIconPath,
-  getStatLabel,
-} from "./useSkillTree";
-import { getSkillIconForForm } from "../../../imageMap/characterMap/imageMap";
-
-const SKILL_TYPE_CONFIG = {
-  Normal: { label: "Attaque de base", color: "#e08c30" },
-  BPSkill: { label: "Compétence", color: "#4fa3d1" },
-  Ultra: { label: "Ultime", color: "#d4a0e0" },
-  Talent: { label: "Talent", color: "#7ecba1" },
-  Maze: { label: "Technique", color: "#aaaaaa" },
-  MazeNormal: { label: "Technique", color: "#aaaaaa" },
-  memo_skill: { label: "Mémo-sprite", color: "#9b59b6" },
-  memo_talent: { label: "Mémo-sprite", color: "#9b59b6" },
-};
+import { sanitizeAndFormatDescription } from "../../../utils/textFormat";
+import useSkillTree, { getNodeStyle, isStatNode, isMainSkill } from "./useSkillTree";
+import { SKILL_TYPE_CONFIG } from "../../../constants/skillTypeConfig";
 
 // ── Forme individuelle d'un skill (identique à SkillCard) ──
-function SkillForm({ form, charId, color, isFirst, formIndex = 0 }) {
-  const cfg = SKILL_TYPE_CONFIG[form.type] || {
-    label: form.typeText || form.type,
-    color,
-  };
-  const remoteIcon = form.icon ? `https://api.mihomo.me/${form.icon}` : null;
-  const localIcon = getSkillIconForForm(charId, form.type, formIndex);
-  const iconSrc = localIcon || remoteIcon;
+// icon vient désormais directement de form.icon (URL fournie par
+// HoYoLab) — plus de charId/formIndex/imageMap ici.
+function SkillForm({ form, color, isFirst }) {
+  const cfg = SKILL_TYPE_CONFIG[form.type] || { label: form.typeText || form.type, color };
 
   return (
     <div
@@ -37,15 +16,8 @@ function SkillForm({ form, charId, color, isFirst, formIndex = 0 }) {
         borderTop: isFirst ? "none" : "1px dashed rgba(255,255,255,0.08)",
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "10px",
-          marginBottom: "8px",
-        }}
-      >
-        {iconSrc && (
+      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
+        {form.icon && (
           <div
             style={{
               width: 34,
@@ -61,7 +33,7 @@ function SkillForm({ form, charId, color, isFirst, formIndex = 0 }) {
             }}
           >
             <img
-              src={iconSrc}
+              src={form.icon}
               alt={form.name}
               style={{ width: "100%", height: "100%", objectFit: "contain" }}
               onError={(e) => {
@@ -71,22 +43,8 @@ function SkillForm({ form, charId, color, isFirst, formIndex = 0 }) {
           </div>
         )}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              flexWrap: "wrap",
-            }}
-          >
-            <span
-              style={{
-                color: cfg.color,
-                fontSize: "0.78rem",
-                fontWeight: 700,
-                fontFamily: "Inter, sans-serif",
-              }}
-            >
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+            <span style={{ color: cfg.color, fontSize: "0.78rem", fontWeight: 700, fontFamily: "Inter, sans-serif" }}>
               {form.name}
             </span>
             {form.effect_text && (
@@ -106,14 +64,7 @@ function SkillForm({ form, charId, color, isFirst, formIndex = 0 }) {
               </span>
             )}
           </div>
-          <div
-            style={{
-              color: "#666",
-              fontSize: "0.6rem",
-              fontFamily: "Orbitron, sans-serif",
-              marginTop: "2px",
-            }}
-          >
+          <div style={{ color: "#666", fontSize: "0.6rem", fontFamily: "Orbitron, sans-serif", marginTop: "2px" }}>
             Niv. {form.level} / {form.maxLevel}
           </div>
         </div>
@@ -135,11 +86,12 @@ function SkillForm({ form, charId, color, isFirst, formIndex = 0 }) {
 }
 
 // ── Nœud SVG interactif ──
-function Node({ node, pos, isSelected, onClick, charId }) {
+// node.icon est désormais une URL directe — plus de getLocalIconPath/charId.
+function Node({ node, pos, isSelected, onClick }) {
   const style = getNodeStyle(node);
   const stat = isStatNode(node);
   const main = isMainSkill(node);
-  const nodeMaxLevel = node.maxLevel || node.max_level || 1;
+  const nodeMaxLevel = node.maxLevel || 1;
   const isMaxed = node.level >= nodeMaxLevel;
 
   const { color, size, ring, shape } = style;
@@ -153,14 +105,9 @@ function Node({ node, pos, isSelected, onClick, charId }) {
     : isMaxed && main
       ? `drop-shadow(0 0 5px ${color}88)`
       : "none";
-  const localIcon = getLocalIconPath(charId, node);
 
   return (
-    <g
-      onClick={() => onClick(node)}
-      style={{ cursor: "pointer", filter: glow }}
-      transform={`translate(${pos.x}, ${pos.y})`}
-    >
+    <g onClick={() => onClick(node)} style={{ cursor: "pointer", filter: glow }} transform={`translate(${pos.x}, ${pos.y})`}>
       {ring && (
         <rect
           x={-(half + 7)}
@@ -185,9 +132,9 @@ function Node({ node, pos, isSelected, onClick, charId }) {
         opacity={isMaxed ? 1 : 0.65}
       />
       {!stat &&
-        (localIcon ? (
+        (node.icon ? (
           <image
-            href={localIcon}
+            href={node.icon}
             x={-half + 4}
             y={-half + 4}
             width={size - 8}
@@ -213,7 +160,7 @@ function Node({ node, pos, isSelected, onClick, charId }) {
         fontFamily="Orbitron, sans-serif"
         style={{ userSelect: "none", fontWeight: isMaxed ? "600" : "400" }}
       >
-        {stat ? getStatLabel(node) : `${node.level}/${nodeMaxLevel}`}
+        {stat ? node.propLabel || "✦" : `${node.level}/${nodeMaxLevel}`}
       </text>
     </g>
   );
@@ -230,7 +177,6 @@ function NodeDetailPanel({
   traceDesc,
   traceIcon,
   selectedMaxLevel,
-  charId,
 }) {
   const color = selStyle?.color || "#d8b467";
 
@@ -238,15 +184,13 @@ function NodeDetailPanel({
     <div
       style={{
         padding: "14px 16px",
-        background:
-          "linear-gradient(135deg, rgba(216,180,103,0.05) 0%, rgba(0,0,0,0.35) 100%)",
+        background: "linear-gradient(135deg, rgba(216,180,103,0.05) 0%, rgba(0,0,0,0.35) 100%)",
         border: `1px solid ${color}33`,
         borderRadius: "10px",
         position: "relative",
         overflow: "hidden",
       }}
     >
-      {/* Trait coloré gauche */}
       <div
         style={{
           position: "absolute",
@@ -259,17 +203,9 @@ function NodeDetailPanel({
         }}
       />
 
-      {/* CAS 1 : compétence principale (avec formes éventuelles) */}
       {isSelectedMain && groupedForms ? (
         <div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              marginBottom: "12px",
-            }}
-          >
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
             <span
               style={{
                 color,
@@ -296,27 +232,12 @@ function NodeDetailPanel({
             </span>
           </div>
           {groupedForms.forms.map((form, idx) => (
-            <SkillForm
-              key={form.id}
-              form={form}
-              charId={charId}
-              color={color}
-              isFirst={idx === 0}
-              formIndex={idx}
-            />
+            <SkillForm key={form.id} form={form} color={color} isFirst={idx === 0} />
           ))}
         </div>
       ) : (
-        /* CAS 2 : stat ou trace A2/A4/A6 */
         <div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              marginBottom: "10px",
-            }}
-          >
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
             {isSelectedStat ? (
               <div
                 style={{
@@ -334,40 +255,15 @@ function NodeDetailPanel({
                   flexShrink: 0,
                 }}
               >
-                {getStatLabel(selectedNode)}
+                {selectedNode.propLabel || "✦"}
               </div>
             ) : traceIcon ? (
-              <img
-                src={traceIcon}
-                alt=""
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: "7px",
-                  flexShrink: 0,
-                }}
-              />
+              <img src={traceIcon} alt="" style={{ width: 36, height: 36, borderRadius: "7px", flexShrink: 0 }} />
             ) : (
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: "7px",
-                  background: "#ffffff22",
-                  flexShrink: 0,
-                }}
-              />
+              <div style={{ width: 36, height: 36, borderRadius: "7px", background: "#ffffff22", flexShrink: 0 }} />
             )}
             <div>
-              <span
-                style={{
-                  color,
-                  fontSize: "0.82rem",
-                  fontWeight: 700,
-                  fontFamily: "Inter, sans-serif",
-                  display: "block",
-                }}
-              >
+              <span style={{ color, fontSize: "0.82rem", fontWeight: 700, fontFamily: "Inter, sans-serif", display: "block" }}>
                 {traceName}
               </span>
               <span
@@ -389,29 +285,13 @@ function NodeDetailPanel({
           </div>
           {traceDesc ? (
             <div
-              style={{
-                fontSize: "0.72rem",
-                lineHeight: "1.65",
-                color: "#c0c0c0",
-                fontFamily: "Inter, sans-serif",
-              }}
-              {...(/<[a-z][\s\S]*>/i.test(traceDesc)
-                ? { dangerouslySetInnerHTML: { __html: traceDesc } }
-                : {})}
+              style={{ fontSize: "0.72rem", lineHeight: "1.65", color: "#c0c0c0", fontFamily: "Inter, sans-serif" }}
+              {...(/<[a-z][\s\S]*>/i.test(traceDesc) ? { dangerouslySetInnerHTML: { __html: traceDesc } } : {})}
             >
-              {/<[a-z][\s\S]*>/i.test(traceDesc)
-                ? null
-                : sanitizeAndFormatDescription(traceDesc)}
+              {/<[a-z][\s\S]*>/i.test(traceDesc) ? null : sanitizeAndFormatDescription(traceDesc)}
             </div>
           ) : (
-            <p
-              style={{
-                fontSize: "0.68rem",
-                color: "#555",
-                fontStyle: "italic",
-                margin: 0,
-              }}
-            >
+            <p style={{ fontSize: "0.68rem", color: "#555", fontStyle: "italic", margin: 0 }}>
               Aucune description disponible.
             </p>
           )}
@@ -422,7 +302,10 @@ function NodeDetailPanel({
 }
 
 // ── Composant principal ──
-export default function SkillTreePanel({ skillTree, path, charId, allSkills }) {
+// charId accepté mais plus transmis à useSkillTree (n'en a plus besoin,
+// les icônes sont déjà résolues côté backend) — gardé en props par
+// compat si un futur usage en a besoin.
+export default function SkillTreePanel({ skillTree, path, allSkills }) {
   const {
     hasData,
     positions,
@@ -441,54 +324,18 @@ export default function SkillTreePanel({ skillTree, path, charId, allSkills }) {
     traceDesc,
     traceIcon,
     selectedMaxLevel,
-  } = useSkillTree({ skillTree, path, charId, allSkills });
+  } = useSkillTree({ skillTree, path, allSkills });
 
-  if (!hasData)
-    return (
-      <p className="has-text-grey-light is-size-7 p-4">
-        Données de l'arbre indisponibles.
-      </p>
-    );
+  if (!hasData) return <p className="has-text-grey-light is-size-7 p-4">Données de l'arbre indisponibles.</p>;
 
   return (
-    <div
-      style={{
-        display: "flex",
-        gap: "20px",
-        alignItems: "flex-start",
-        fontFamily: "'Orbitron', sans-serif",
-      }}
-    >
-      {/* ── COLONNE GAUCHE : SVG + barre de progression ── */}
+    <div style={{ display: "flex", gap: "20px", alignItems: "flex-start", fontFamily: "'Orbitron', sans-serif" }}>
       <div style={{ flex: "0 0 58%", minWidth: 0 }}>
-        {/* Barre de progression */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            marginBottom: "12px",
-          }}
-        >
-          <span
-            style={{
-              fontSize: "0.6rem",
-              color: "#d8b467",
-              letterSpacing: "0.1em",
-              whiteSpace: "nowrap",
-            }}
-          >
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
+          <span style={{ fontSize: "0.6rem", color: "#d8b467", letterSpacing: "0.1em", whiteSpace: "nowrap" }}>
             TRACES
           </span>
-          <div
-            style={{
-              flex: 1,
-              height: "3px",
-              background: "rgba(255,255,255,0.07)",
-              borderRadius: "2px",
-              overflow: "hidden",
-            }}
-          >
+          <div style={{ flex: 1, height: "3px", background: "rgba(255,255,255,0.07)", borderRadius: "2px", overflow: "hidden" }}>
             <div
               style={{
                 width: `${pct}%`,
@@ -499,22 +346,14 @@ export default function SkillTreePanel({ skillTree, path, charId, allSkills }) {
               }}
             />
           </div>
-          <span
-            style={{
-              fontSize: "0.6rem",
-              color: "#d8b467",
-              whiteSpace: "nowrap",
-            }}
-          >
+          <span style={{ fontSize: "0.6rem", color: "#d8b467", whiteSpace: "nowrap" }}>
             {unlocked}/{total}
           </span>
         </div>
 
-        {/* Canvas SVG */}
         <div
           style={{
-            background:
-              "linear-gradient(180deg, rgba(8,12,20,0.97) 0%, rgba(5,8,15,0.99) 100%)",
+            background: "linear-gradient(180deg, rgba(8,12,20,0.97) 0%, rgba(5,8,15,0.99) 100%)",
             borderRadius: "14px",
             border: "1px solid rgba(216,180,103,0.12)",
             overflow: "hidden",
@@ -530,13 +369,7 @@ export default function SkillTreePanel({ skillTree, path, charId, allSkills }) {
                 </feMerge>
               </filter>
             </defs>
-            <ellipse
-              cx="320"
-              cy="260"
-              rx="210"
-              ry="160"
-              fill="rgba(216,180,103,0.025)"
-            />
+            <ellipse cx="320" cy="260" rx="210" ry="160" fill="rgba(216,180,103,0.025)" />
             {connections.map(({ from, to, maxed }, i) => (
               <line
                 key={i}
@@ -544,9 +377,7 @@ export default function SkillTreePanel({ skillTree, path, charId, allSkills }) {
                 y1={from.y}
                 x2={to.x}
                 y2={to.y}
-                stroke={
-                  maxed ? "rgba(216,180,103,0.75)" : "rgba(255,255,255,0.38)"
-                }
+                stroke={maxed ? "rgba(216,180,103,0.75)" : "rgba(255,255,255,0.38)"}
                 strokeWidth={maxed ? 2 : 1.4}
                 strokeDasharray={maxed ? "none" : "4 4"}
                 filter={maxed ? "url(#stp-glow)" : "none"}
@@ -560,11 +391,8 @@ export default function SkillTreePanel({ skillTree, path, charId, allSkills }) {
                   key={node.id}
                   node={node}
                   pos={pos}
-                  charId={charId}
                   isSelected={selected === node.id}
-                  onClick={(n) =>
-                    setSelected((s) => (s === n.id ? null : n.id))
-                  }
+                  onClick={(n) => setSelected((s) => (s === n.id ? null : n.id))}
                 />
               );
             })}
@@ -572,16 +400,7 @@ export default function SkillTreePanel({ skillTree, path, charId, allSkills }) {
         </div>
       </div>
 
-      {/* ── COLONNE DROITE : panneaux de détail empilés ── */}
-      <div
-        style={{
-          flex: 1,
-          minWidth: 0,
-          display: "flex",
-          flexDirection: "column",
-          gap: "10px",
-        }}
-      >
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "10px" }}>
         {selectedNode ? (
           <NodeDetailPanel
             selectedNode={selectedNode}
@@ -593,7 +412,6 @@ export default function SkillTreePanel({ skillTree, path, charId, allSkills }) {
             traceDesc={traceDesc}
             traceIcon={traceIcon}
             selectedMaxLevel={selectedMaxLevel}
-            charId={charId}
           />
         ) : (
           <div
@@ -607,16 +425,7 @@ export default function SkillTreePanel({ skillTree, path, charId, allSkills }) {
               justifyContent: "center",
             }}
           >
-            <p
-              style={{
-                fontSize: "0.63rem",
-                color: "#444",
-                fontStyle: "italic",
-                fontFamily: "Inter, sans-serif",
-                textAlign: "center",
-                margin: 0,
-              }}
-            >
+            <p style={{ fontSize: "0.63rem", color: "#444", fontStyle: "italic", fontFamily: "Inter, sans-serif", textAlign: "center", margin: 0 }}>
               Clique sur un nœud
               <br />
               pour afficher ses détails

@@ -1,56 +1,84 @@
 // utils/serializers/relic.js
+//
+// ⚠️ GAP CONNU : detail.relics_v2.dress_relics ne donne JAMAIS les valeurs
+// numériques (ni la stat principale, ni les sous-stats) — seulement le
+// TYPE de stat principale (ex: "PV", "Chances de coup critique"). Les
+// sous-stats (les 4 lignes secondaires par relique) sont absentes à 100%.
+//
+// On retourne donc subStats: [] systématiquement (le frontend masque déjà
+// cette section si vide — RelicCard.jsx / RelicSection.jsx) et
+// mainStat.value: null plutôt que d'inventer un chiffre.
 
-// L'API identifie les emplacements d'artefacts par des numéros (1 à 6). On les traduit pour l'interface.
 const RELIC_SLOT_LABELS = {
-  1: "Tête",
-  2: "Main",
-  3: "Corps",
-  4: "Pied",
-  5: "Sphère",
-  6: "Corde",
+  HEAD: "Tête",
+  HAND: "Main",
+  BODY: "Corps",
+  FOOT: "Pied",
+  SIDEBALL: "Sphère",
+  ROPE: "Corde",
 };
 
-const sanitizeGenderTag = (text) => {
-  if (!text) return null;
-  return String(text)
-    .replace(/\{F#([^}]*)\}\{M#[^}]*\}/gi, "$1")
-    .replace(/\{M#([^}]*)\}\{F#[^}]*\}/gi, "$1")
-    .replace(/\{[FM]#([^}]*)\}/gi, "$1")
-    .trim();
-};
-
-// Formate une statistique individuelle de relique (Principale ou Secondaire)
-const serializeStat = (stat) => {
-  if (!stat) return null;
-  return {
-    property: sanitizeGenderTag(stat.name || stat.field || "Stat"),
-    // 🛠️ ASTUCE MATHÉMATIQUE : L'API renvoie parfois les pourcentages sous forme décimale (ex: 0.154 pour 15.4%).
-    // Si stat.percent est vrai, on multiplie par 100 et on garde 1 décimale.
-    // Sinon, c'est une stat fixe (ex: PV bruts), on l'arrondit (Math.floor) et on met des espaces pour les milliers (toLocaleString).
-    value:
-      stat.display ||
-      (stat.percent
-        ? `${(stat.value * 100).toFixed(1)}%`
-        : Math.floor(stat.value ?? 0).toLocaleString()),
-    isPercent: stat.percent || false,
-  };
-};
-
-// Construit l'objet propre d'une Relique
+/**
+ * @param {object} relic  une entrée de detail.relics_v2.dress_relics
+ */
 const serializeRelic = (relic) => {
   if (!relic) return null;
 
   return {
-    id: relic.id ? String(relic.id) : null,
-    name: sanitizeGenderTag(relic.name) || null,
-    type: RELIC_SLOT_LABELS[relic.type] || relic.type || "Slot inconnu",
+    id: relic.item_id ? String(relic.item_id) : null,
+    name: relic.item_name || null,
+    iconUrl: relic.icon_url || null,
+    type: RELIC_SLOT_LABELS[relic.body_type] || relic.body_type || "Slot inconnu",
     setId: relic.set_id ? String(relic.set_id) : null,
-    set: sanitizeGenderTag(relic.set_name) || null,
+    set: relic.set_name || null,
     level: relic.level != null ? Number(relic.level) : null,
     rarity: relic.rarity != null ? Number(relic.rarity) : null,
-    mainStat: serializeStat(relic.main_affix),
-    subStats: (relic.sub_affix || []).map(serializeStat).filter(Boolean),
+
+    // ⚠️ Valeur numérique indisponible — voir note en tête de fichier.
+    mainStat: relic.main_property_name
+      ? { property: relic.main_property_name, value: null, isPercent: null }
+      : null,
+
+    // ⚠️ Toujours vide — l'API ne fournit pas les sous-stats du tout.
+    subStats: [],
   };
 };
 
+/**
+ * Extrait les bonus de set uniques à partir de la liste de reliques
+ * équipées (contrairement à Mihomo, l'API ne donne pas de liste
+ * "relicSets" séparée avec le compte de pièces — on le déduit ici).
+ * @param {Array} dressRelics  detail.relics_v2.dress_relics
+ */
+const extractRelicSets = (dressRelics) => {
+  if (!dressRelics?.length) return [];
+
+  const bySet = {};
+  for (const relic of dressRelics) {
+    if (!relic.set_id) continue;
+    if (!bySet[relic.set_id]) {
+      bySet[relic.set_id] = {
+        id: String(relic.set_id),
+        name: relic.set_name || null,
+        count: 0,
+        twoDesc: relic.set_two_desc || "",
+        fourDesc: relic.set_four_desc || "",
+      };
+    }
+    bySet[relic.set_id].count += 1;
+  }
+
+  const result = [];
+  for (const set of Object.values(bySet)) {
+    if (set.count >= 2 && set.twoDesc) {
+      result.push({ id: set.id, name: set.name, num: 2, desc: set.twoDesc, properties: [] });
+    }
+    if (set.count >= 4 && set.fourDesc) {
+      result.push({ id: set.id, name: set.name, num: 4, desc: set.fourDesc, properties: [] });
+    }
+  }
+  return result;
+};
+
 module.exports = serializeRelic;
+module.exports.extractRelicSets = extractRelicSets;

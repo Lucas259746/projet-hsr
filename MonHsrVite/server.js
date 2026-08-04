@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const apiRoutes = require("./routes/api"); // Importation du routeur interne contenant la logique métier des requêtes

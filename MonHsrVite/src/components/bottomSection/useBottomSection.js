@@ -1,23 +1,18 @@
-import { useState } from "react";
+// src/components/bottomSection/useBottomSection.js
+//
+// ⚠️ Les nœuds "mémo-sprite" (memo_skill/memo_talent) ne sont pas encore
+// vérifiés avec un vrai JSON HoYoLab pour un personnage qui en possède
+// (Sunday, Robin, Tribbie...). skillTreeMap.js (backend) ne produit pas
+// encore ces types — à corriger une fois testé avec un tel personnage.
+// En l'état, memoSkills sera probablement toujours vide.
 
-const MAIN_TYPES = new Set([
-  "Normal",
-  "BPSkill",
-  "Ultra",
-  "Talent",
-  "Maze",
-  "MazeNormal",
-]);
-const MEMO_TYPES = new Set(["memo_skill", "memo_talent"]);
-const SPECIAL_TYPES = new Set(["ElationDamage"]);
-const TYPE_ORDER = [
-  "Normal",
-  "BPSkill",
-  "Ultra",
-  "Talent",
-  "Maze",
-  "MazeNormal",
-];
+import { useState } from "react";
+import {
+  MAIN_TYPES,
+  MEMO_TYPES,
+  SPECIAL_TYPES,
+  TYPE_ORDER,
+} from "../../constants/skillTypeConfig";
 
 export default function useBottomSection(activeCharacter) {
   const [activeTab, setActiveTab] = useState("skills");
@@ -32,13 +27,10 @@ export default function useBottomSection(activeCharacter) {
     .filter((n) => MEMO_TYPES.has(n.type))
     .map((n) => ({
       id: n.id,
-      name:
-        n.name ||
-        (n.type === "memo_skill"
-          ? "Compétence mémo-sprite"
-          : "Talent mémo-sprite"),
+      name: n.name || (n.type === "memo_skill" ? "Compétence mémo-sprite" : "Talent mémo-sprite"),
       type: n.type,
       typeText: n.type,
+      icon: n.icon, // URL directe désormais
       effect: null,
       level: n.level,
       maxLevel: n.maxLevel,
@@ -49,14 +41,9 @@ export default function useBottomSection(activeCharacter) {
   const mainSkills = TYPE_ORDER.map((t) => {
     const skillsOfType = allSkills.filter((s) => s.type === t);
     if (skillsOfType.length === 0) return null;
-    return {
-      ...skillsOfType[0],
-      isGrouped: skillsOfType.length > 1,
-      forms: skillsOfType,
-    };
+    return { ...skillsOfType[0], isGrouped: skillsOfType.length > 1, forms: skillsOfType };
   }).filter(Boolean);
 
-  // Groupe les special skills par type (comme mainSkills) pour fusionner les formes multiples
   const specialSkillsRaw = allSkills.filter(
     (s) => SPECIAL_TYPES.has(s.type) || (!MAIN_TYPES.has(s.type) && !MEMO_TYPES.has(s.type)),
   );

@@ -1,56 +1,71 @@
 // utils/serializers/index.js
 
-const { fetchUser: mihomoFetchUser } = require("../../config/mihomo");
-const { loadCache } = require("../../config/lightConeCache");
+const { fetchFullProfile } = require("../../config/hoyolab");
+const { fetchEnkaShowcase } = require("../../config/enkaNetwork");
+const { loadCache: loadLightConeCache } = require("../../config/lightConeCache");
+const { loadCache: loadSkillCache } = require("../../config/characterSkillCache");
+const { loadCache: loadRelicCache } = require("../../config/relicCache");
 const serializeCharacter = require("./character");
+const { mergeEnkaIntoCharacter } = require("./enkaEnrich");
 
 /**
- * Fonction principale : Récupère et nettoie le profil complet d'un joueur.
+ * Fonction principale : récupère et nettoie le profil complet d'un joueur
+ * à partir de l'API HoYoLab (roster + détail par personnage possédé).
+ *
+ * ⚠️ Peut prendre 30-60s pour un roster complet (l'API HoYoLab impose un
+ * rate-limit strict — voir config/hoyolab.js). Pense à mettre ce résultat
+ * en cache côté serveur (Redis, fichier, etc.) plutôt que de le refetch
+ * à chaque requête entrante.
+ *
+ * @param {string} userId  UID Star Rail
+ * @param {string} region  ex: "prod_official_eur" (requis, contrairement
+ *   à Mihomo qui n'avait besoin que de la langue)
+ * @param {string} language  ex: "fr" — utilisé pour les caches Mar-7th
  */
-const getUserData = async (userId, language = "en") => {
+const getUserData = async (userId, region, language = "fr") => {
   try {
-    // 1. Avant toute chose, on s'assure que le dictionnaire local des Cônes de Lumière est chargé.
-    // Cela permet d'avoir accès aux descriptions complètes (qui ne sont pas toujours fournies par l'API de base).
-    await loadCache(language);
+    // Charge les caches externes (Mar-7th) en parallèle — chacun échoue
+    // silencieusement de son côté si indisponible (voir leurs fichiers
+    // respectifs), donc pas de Promise.all qui casserait tout en cas
+    // d'échec d'un seul.
+    await Promise.allSettled([
+      loadLightConeCache(language),
+      loadSkillCache(language),
+      loadRelicCache(language),
+    ]);
 
-    // 2. Appel à l'API distante (Mihomo) pour récupérer le gros JSON brut du joueur.
-    const data = await mihomoFetchUser(userId, language);
+    // fetchEnkaShowcase() est déjà 100% résiliente (voir config/enkaNetwork.js)
+    // — jamais d'erreur, jamais de blocage, tableau vide si indisponible.
+    const [profile, enkaShowcase] = await Promise.all([
+      fetchFullProfile(userId, region),
+      fetchEnkaShowcase(userId),
+    ]);
+    const { userInfo, characters } = profile;
 
-    // 3. Extraction sécurisée des deux gros blocs : les infos du joueur et sa vitrine de personnages.
-    const player = data.player || {};
-    const characters = data.characters || [];
+    // Index rapide par avatarId pour la fusion
+    const enkaByAvatarId = {};
+    for (const detail of enkaShowcase) {
+      enkaByAvatarId[String(detail.avatarId)] = detail;
+    }
 
-    // 4. Construction de l'objet propre qui sera renvoyé à ton frontend React.
+    const characterList = characters
+      .map(serializeCharacter)
+      .filter(Boolean)
+      .map((char) => mergeEnkaIntoCharacter(char, enkaByAvatarId[char.id]));
+
     return {
-      uid: String(player.uid || userId),
-      nickname: player.nickname || "Joueur",
-      level: player.level != null ? Number(player.level) : null,
-      worldLevel:
-        player.world_level != null ? Number(player.world_level) : null,
-
-      // Sécurité : Si l'API ne donne pas le nombre exact de personnages possédés,
-      // on compte simplement combien de personnages sont dans la vitrine (characters.length).
-      characterCount:
-        player.space_info?.avatar_count != null
-          ? Number(player.space_info.avatar_count)
-          : characters.length,
-      lightConeCount:
-        player.space_info?.light_cone_count != null
-          ? Number(player.space_info.light_cone_count)
-          : null,
-      relicCount:
-        player.space_info?.relic_count != null
-          ? Number(player.space_info.relic_count)
-          : null,
-
-      // 5. La magie opère ici : On fait passer chaque personnage brut dans notre "moulinette" (serializeCharacter).
-      // Le .filter(Boolean) supprime automatiquement les personnages qui auraient planté (renvoyés comme null).
-      characterList: characters.map(serializeCharacter).filter(Boolean),
+      uid: String(userId),
+      nickname: userInfo?.nickname || "Joueur",
+      level: userInfo?.level != null ? Number(userInfo.level) : null,
+      worldLevel: null,
+      characterCount: characterList.length,
+      lightConeCount: null,
+      relicCount: null,
+      characterList,
     };
   } catch (error) {
-    // Interception des erreurs (ex: UID invalide, serveur Mihomo en panne) pour éviter que ton serveur Node ne crash.
     console.error(`❌ Error fetching user ${userId}:`, error.message);
-    throw error; // On relance l'erreur pour que la route (server.js) puisse renvoyer un statut 404/500 au frontend.
+    throw error;
   }
 };
 
