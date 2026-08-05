@@ -27,21 +27,21 @@ const SUFFIX_TO_ANCHOR = {
   "003": "Point03",
   "004": "Point04",
   "007": "Point05",
-  "101": "Point06",
-  "102": "Point07",
-  "103": "Point08",
-  "201": "Point09",
-  "202": "Point10",
-  "203": "Point11",
-  "204": "Point12",
-  "205": "Point13",
-  "206": "Point14",
-  "207": "Point15",
-  "208": "Point16",
-  "209": "Point17",
-  "210": "Point18",
-  "301": "Point19",
-  "302": "Point20",
+  101: "Point06",
+  102: "Point07",
+  103: "Point08",
+  201: "Point09",
+  202: "Point10",
+  203: "Point11",
+  204: "Point12",
+  205: "Point13",
+  206: "Point14",
+  207: "Point15",
+  208: "Point16",
+  209: "Point17",
+  210: "Point18",
+  301: "Point19",
+  302: "Point20",
 };
 
 const ANCHOR_TO_TYPE = {
@@ -140,17 +140,23 @@ const RELIC_SLOT_LABELS = {
 /**
  * Sérialise une relique Enka (avec _flat.props déjà calculés par le jeu)
  * vers le même format que utils/serializers/relic.js.
+ * @param {object} relic  entrée brute de enkaDetail.relicList
+ * @param {Object.<string,string>} iconByType  { "Tête": url, "Main": url, ... }
+ *   récupéré depuis les reliques HoYoLab d'origine (Enka ne fournit pas
+ *   d'URL d'icône) — voir mergeEnkaIntoCharacter.
  */
-const serializeEnkaRelic = (relic) => {
+const serializeEnkaRelic = (relic, iconByType = {}) => {
   const props = relic._flat?.props || [];
   const [mainProp, ...subProps] = props;
   const meta = getRelicMeta(relic.tid);
   const setMeta = getRelicSetMeta(relic._flat?.setID);
+  const type = RELIC_SLOT_LABELS[relic.type] || "Slot inconnu";
 
   return {
     id: String(relic.tid),
     name: meta?.name || null,
-    type: RELIC_SLOT_LABELS[relic.type] || "Slot inconnu",
+    iconUrl: iconByType[type] || null,
+    type,
     setId: relic._flat?.setID ? String(relic._flat.setID) : null,
     set: setMeta?.name || null,
     level: relic.level != null ? Number(relic.level) : null,
@@ -187,10 +193,22 @@ const extractEnkaRelicSets = (relicList) => {
     const setMeta = getRelicSetMeta(setId);
     if (!setMeta) continue;
     if (count >= 2 && setMeta.twoPieceDesc) {
-      result.push({ id: String(setId), name: setMeta.name, num: 2, desc: setMeta.twoPieceDesc, properties: [] });
+      result.push({
+        id: String(setId),
+        name: setMeta.name,
+        num: 2,
+        desc: setMeta.twoPieceDesc,
+        properties: [],
+      });
     }
     if (count >= 4 && setMeta.fourPieceDesc) {
-      result.push({ id: String(setId), name: setMeta.name, num: 4, desc: setMeta.fourPieceDesc, properties: [] });
+      result.push({
+        id: String(setId),
+        name: setMeta.name,
+        num: 4,
+        desc: setMeta.fourPieceDesc,
+        properties: [],
+      });
     }
   }
   return result;
@@ -200,14 +218,40 @@ const extractEnkaRelicSets = (relicList) => {
  * Construit le skillTree complet à partir de skillTreeList d'Enka —
  * inclut la Technique et les 10 nœuds de stats mineurs, absents de
  * l'endpoint HoYoLab rpgcultivate.
+ *
+ * @param {Array} skillTreeList  enkaDetail.skillTreeList
+ * @param {Array} originalSkillTree  character.skillTree AVANT fusion —
+ *   sert uniquement à récupérer les icônes (Enka n'en fournit pas). Les
+ *   nœuds nouvellement ajoutés par Enka (Technique, stats mineurs 09-18)
+ *   n'auront pas d'icône, faute de source — c'est une limite, pas une
+ *   régression, puisque HoYoLab ne les envoyait jamais non plus.
  */
-const buildEnkaSkillTree = (skillTreeList) => {
+const buildEnkaSkillTree = (skillTreeList, originalSkillTree = []) => {
+  const iconByAnchor = {};
+  for (const node of originalSkillTree) {
+    if (node.anchor && node.icon) iconByAnchor[node.anchor] = node.icon;
+  }
+
   return skillTreeList
     .map((point) => {
       const { anchor, type } = classifyPointId(point.pointId);
       if (!anchor) return null; // suffixe non reconnu (ex: eidolon bonus atypique) — ignoré proprement
 
-      const resolved = resolveSkillText(point.pointId, "tree");
+      // Les 5 aptitudes principales (Point01-05) doivent tenter le
+      // fallback d'ID dérivé (character_skills.json) en plus de
+      // character_skill_trees.json — resolveSkillText ne le fait que si
+      // kind === "skill".
+      const isMainAbility = [
+        "skill_basic",
+        "skill_skill",
+        "skill_ultra",
+        "skill_talent",
+        "skill_tech",
+      ].includes(type);
+      const resolved = resolveSkillText(
+        point.pointId,
+        isMainAbility ? "skill" : "tree",
+      );
       const maxLevel = getMaxLevel(anchor);
 
       return {
@@ -217,7 +261,7 @@ const buildEnkaSkillTree = (skillTreeList) => {
         type,
         level: Number(point.level),
         maxLevel,
-        icon: null, // Enka ne fournit pas d'URL d'icône pour les traces
+        icon: iconByAnchor[anchor] || resolved.icon || null,
         propLabel: resolved.name || null,
         name: resolved.name || null,
         description: resolved.description || "",
@@ -232,7 +276,15 @@ const buildEnkaSkillTree = (skillTreeList) => {
  */
 const buildEnkaSkills = (skillTree) => {
   return skillTree
-    .filter((n) => ["skill_basic", "skill_skill", "skill_ultra", "skill_talent", "skill_tech"].includes(n.type))
+    .filter((n) =>
+      [
+        "skill_basic",
+        "skill_skill",
+        "skill_ultra",
+        "skill_talent",
+        "skill_tech",
+      ].includes(n.type),
+    )
     .map((n) => {
       const anchor = n.anchor;
       const rawType = ANCHOR_TO_SKILL_TYPE[anchor] || "Maze";
@@ -241,6 +293,7 @@ const buildEnkaSkills = (skillTree) => {
         name: n.name || null,
         type: rawType,
         typeText: null,
+        icon: n.icon || null,
         effect: null,
         level: n.level,
         maxLevel: n.maxLevel,
@@ -262,15 +315,30 @@ const mergeEnkaIntoCharacter = (character, enkaDetail) => {
   if (!enkaDetail) return character;
 
   try {
-    const relics = (enkaDetail.relicList || []).map(serializeEnkaRelic);
+    const iconByRelicType = {};
+    for (const relic of character.relics || []) {
+      if (relic.type && relic.iconUrl)
+        iconByRelicType[relic.type] = relic.iconUrl;
+    }
+
+    const relics = (enkaDetail.relicList || []).map((r) =>
+      serializeEnkaRelic(r, iconByRelicType),
+    );
     const relicSets = extractEnkaRelicSets(enkaDetail.relicList || []);
-    const skillTree = buildEnkaSkillTree(enkaDetail.skillTreeList || []);
+    const skillTree = buildEnkaSkillTree(
+      enkaDetail.skillTreeList || [],
+      character.skillTree || [],
+    );
     const skills = buildEnkaSkills(skillTree);
 
     return {
       ...character,
       lightCone: character.lightCone
-        ? { ...character.lightCone, superimposition: enkaDetail.equipment?.rank ?? character.lightCone.superimposition }
+        ? {
+            ...character.lightCone,
+            superimposition:
+              enkaDetail.equipment?.rank ?? character.lightCone.superimposition,
+          }
         : character.lightCone,
       relics: relics.length > 0 ? relics : character.relics,
       relicSets: relicSets.length > 0 ? relicSets : character.relicSets,
@@ -279,7 +347,9 @@ const mergeEnkaIntoCharacter = (character, enkaDetail) => {
       enrichedByEnka: true, // permet au frontend/debug de savoir d'où viennent les données si besoin
     };
   } catch (err) {
-    console.warn(`⚠️  Fusion Enka échouée pour ${character?.name || character?.id} (${err.message}) — données HoYoLab conservées.`);
+    console.warn(
+      `⚠️  Fusion Enka échouée pour ${character?.name || character?.id} (${err.message}) — données HoYoLab conservées.`,
+    );
     return character;
   }
 };

@@ -41,7 +41,11 @@ const serializeMainSkill = (node) => {
     id: String(node.point_id),
     // Nom réel via override/Mar-7th si disponible, sinon le libellé
     // générique renvoyé par HoYoLab (ex: "Ultime", "Talent"...).
-    name: resolved.name || node.item_name || SKILL_TYPE_LABELS[rawType] || "Aptitude",
+    name:
+      resolved.name ||
+      node.item_name ||
+      SKILL_TYPE_LABELS[rawType] ||
+      "Aptitude",
     type: rawType || "Normal",
     typeText: SKILL_TYPE_LABELS[rawType] || null,
     effect: null,
@@ -67,7 +71,8 @@ const serializeTraceNode = (node) => {
   return {
     id: String(node.point_id),
     anchor: node.anchor,
-    parent: node.pre_point && node.pre_point !== "0" ? String(node.pre_point) : null,
+    parent:
+      node.pre_point && node.pre_point !== "0" ? String(node.pre_point) : null,
     type,
     level: node.cur_level != null ? Number(node.cur_level) : null,
     maxLevel: node.max_level != null ? Number(node.max_level) : null,
@@ -87,6 +92,34 @@ const serializeTraceNode = (node) => {
  * traces + nœuds de stats) à partir de detail.summary.skills et
  * detail.summary.skills_other.
  */
+/**
+ * La Technique (anchor Point05) n'est JAMAIS renvoyée par l'endpoint
+ * HoYoLab rpgcultivate — mais elle n'a besoin d'aucune donnée
+ * spécifique au joueur : elle n'a qu'un seul niveau, pas de matériaux
+ * de montée, et le texte est fixe pour un personnage donné. On peut
+ * donc la synthétiser pour TOUS les persos (vitrine ou non) juste avec
+ * son ID prévisible ({avatarId}007, confirmé sur données Enka réelles)
+ * et le cache Mar-7th qu'on a déjà.
+ */
+const buildTechniqueNode = (avatarId) => {
+  const pointId = `${avatarId}007`;
+  const resolved = resolveSkillText(pointId, "skill");
+  if (!resolved.name && !resolved.description) return null; // rien trouvé dans le cache — pas de nœud vide inutile
+
+  return {
+    id: pointId,
+    anchor: "Point05",
+    parent: null,
+    type: "skill_tech",
+    level: 1,
+    maxLevel: 1,
+    icon: resolved.icon || null,
+    propLabel: null,
+    name: resolved.name,
+    description: resolved.description || "",
+  };
+};
+
 const buildSkillTree = (summary) => {
   const mainNodes = (summary?.skills || []).map(serializeTraceNode);
   const otherNodes = (summary?.skills_other || []).map(serializeTraceNode);
@@ -103,6 +136,23 @@ const serializeCharacter = (character) => {
 
   const level = basic.cur_level != null ? Number(basic.cur_level) : null;
   const summary = detail?.summary || null;
+
+  const techniqueNode = buildTechniqueNode(basic.item_id);
+  const techniqueSkill = techniqueNode
+    ? {
+        id: techniqueNode.id,
+        name: techniqueNode.name,
+        type: "Maze",
+        typeText: null,
+        icon: techniqueNode.icon,
+        effect: null,
+        level: 1,
+        maxLevel: 1,
+        description: techniqueNode.description,
+        simpleDesc: "",
+        params: [],
+      }
+    : null;
 
   return {
     id: basic.item_id ? String(basic.item_id) : null,
@@ -125,12 +175,18 @@ const serializeCharacter = (character) => {
 
     relicSets: extractRelicSets(detail?.relics_v2?.dress_relics || []),
 
-    skills: (summary?.skills || [])
-      .filter((n) => n.point_type === 2)
-      .map(serializeMainSkill)
-      .filter(Boolean),
+    skills: [
+      ...(summary?.skills || [])
+        .filter((n) => n.point_type === 2)
+        .map(serializeMainSkill)
+        .filter(Boolean),
+      ...(techniqueSkill ? [techniqueSkill] : []),
+    ],
 
-    skillTree: buildSkillTree(summary),
+    skillTree: [
+      ...buildSkillTree(summary),
+      ...(techniqueNode ? [techniqueNode] : []),
+    ],
 
     stats: serializeStats(detail?.avatar_property_v2 || []),
   };

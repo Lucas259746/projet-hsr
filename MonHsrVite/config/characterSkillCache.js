@@ -12,7 +12,8 @@
 // descriptions manuellement en attendant, ou définitivement pour les
 // personnages qui ne seraient jamais mis à jour par Mar-7th.
 
-const BASE_URL = "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/index_min";
+const BASE_URL =
+  "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/index_min";
 
 let skillCache = {}; // { [skillId]: { name, desc } }
 let skillTreeCache = {}; // { [pointId]: { name, desc } }
@@ -20,7 +21,9 @@ let lastFetchTime = 0;
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24h, comme lightConeCache.js
 
 const fetchJson = async (url) => {
-  const res = await fetch(url, { headers: { "User-Agent": "AstralDatabase/1.0" } });
+  const res = await fetch(url, {
+    headers: { "User-Agent": "AstralDatabase/1.0" },
+  });
   if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
   return res.json();
 };
@@ -35,7 +38,8 @@ const fetchJson = async (url) => {
 const loadCache = async (language = "en") => {
   const now = Date.now();
   if (
-    (Object.keys(skillCache).length > 0 || Object.keys(skillTreeCache).length > 0) &&
+    (Object.keys(skillCache).length > 0 ||
+      Object.keys(skillTreeCache).length > 0) &&
     now - lastFetchTime < CACHE_TTL_MS
   ) {
     return; // cache encore valide
