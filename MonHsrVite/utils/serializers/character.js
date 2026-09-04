@@ -170,6 +170,10 @@ const serializeCharacter = (character) => {
       : null,
 
     relics: (detail?.relics_v2?.dress_relics || [])
+      .filter(
+        (relic) =>
+          relic?.item_id && relic?.item_name && relic?.main_property_name,
+      )
       .map(serializeRelic)
       .filter(Boolean),
 

@@ -321,10 +321,13 @@ const mergeEnkaIntoCharacter = (character, enkaDetail) => {
         iconByRelicType[relic.type] = relic.iconUrl;
     }
 
-    const relics = (enkaDetail.relicList || []).map((r) =>
+    const equippedRelics = (enkaDetail.relicList || []).filter(
+      (relic) => relic?.tid && relic?._flat?.props?.length > 0,
+    );
+    const relics = equippedRelics.map((r) =>
       serializeEnkaRelic(r, iconByRelicType),
     );
-    const relicSets = extractEnkaRelicSets(enkaDetail.relicList || []);
+    const relicSets = extractEnkaRelicSets(equippedRelics);
     const skillTree = buildEnkaSkillTree(
       enkaDetail.skillTreeList || [],
       character.skillTree || [],

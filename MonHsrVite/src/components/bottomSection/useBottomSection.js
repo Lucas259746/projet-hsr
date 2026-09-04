@@ -19,7 +19,9 @@ export default function useBottomSection(activeCharacter) {
   if (!activeCharacter) return { activeCharacter: null };
 
   const allSkills = activeCharacter.skills || [];
-  const relics = activeCharacter.relics || [];
+  const relics = (activeCharacter.relics || []).filter(
+    (relic) => relic?.id && relic?.name && relic?.mainStat,
+  );
   const relicSets = activeCharacter.relicSets || [];
   const skillTree = activeCharacter.skillTree || [];
 
@@ -27,7 +29,11 @@ export default function useBottomSection(activeCharacter) {
     .filter((n) => MEMO_TYPES.has(n.type))
     .map((n) => ({
       id: n.id,
-      name: n.name || (n.type === "memo_skill" ? "Compétence mémo-sprite" : "Talent mémo-sprite"),
+      name:
+        n.name ||
+        (n.type === "memo_skill"
+          ? "Compétence mémo-sprite"
+          : "Talent mémo-sprite"),
       type: n.type,
       typeText: n.type,
       icon: n.icon, // URL directe désormais
@@ -41,11 +47,17 @@ export default function useBottomSection(activeCharacter) {
   const mainSkills = TYPE_ORDER.map((t) => {
     const skillsOfType = allSkills.filter((s) => s.type === t);
     if (skillsOfType.length === 0) return null;
-    return { ...skillsOfType[0], isGrouped: skillsOfType.length > 1, forms: skillsOfType };
+    return {
+      ...skillsOfType[0],
+      isGrouped: skillsOfType.length > 1,
+      forms: skillsOfType,
+    };
   }).filter(Boolean);
 
   const specialSkillsRaw = allSkills.filter(
-    (s) => SPECIAL_TYPES.has(s.type) || (!MAIN_TYPES.has(s.type) && !MEMO_TYPES.has(s.type)),
+    (s) =>
+      SPECIAL_TYPES.has(s.type) ||
+      (!MAIN_TYPES.has(s.type) && !MEMO_TYPES.has(s.type)),
   );
   const specialByType = {};
   specialSkillsRaw.forEach((s) => {
