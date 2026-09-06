@@ -1,8 +1,4 @@
-// ⚠️ L'API HoYoLab ne fournit jamais les sous-stats (subStats sera
-// toujours vide — la section correspondante reste masquée automatiquement
-// via le && ci-dessous) ni la valeur numérique de la stat principale
-// (mainStat.value peut être null — on affiche alors juste le nom de la
-// stat sans "+null").
+// Les informations absentes de l'API sont masquées plutôt qu'inventées.
 
 function RelicCard({ relic }) {
   if (!relic) return null;

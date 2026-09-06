@@ -1,3 +1,4 @@
+// Charge et met en cache les textes des compétences.
 // config/characterSkillCache.js
 //
 // Charge les descriptions textuelles des compétences et traces depuis

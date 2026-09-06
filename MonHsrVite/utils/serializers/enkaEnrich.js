@@ -1,26 +1,10 @@
-// utils/serializers/enkaEnrich.js
-//
-// Fusionne les données riches d'Enka.Network (reliques calculées,
-// superposition, arbre de traces complet) sur un personnage déjà
-// sérialisé depuis HoYoLab. Uniquement pour les persos présents dans la
-// vitrine — les autres gardent les données HoYoLab partielles telles
-// quelles.
-//
-// RÈGLE D'OR : cette fusion ne doit JAMAIS faire planter un personnage.
-// Toute erreur ici est rattrapée et le perso original (non enrichi) est
-// retourné à la place — un enrichissement raté est une dégradation
-// silencieuse, jamais une panne.
+// Ajoute les données Enka disponibles au personnage HoYoLab existant.
 
-const { resolveSkillText } = require("./resolveSkillText");
+const { resolveSkillText, shortenStatLabel } = require("./resolveSkillText");
 const { getRelicMeta, getRelicSetMeta } = require("../../config/relicCache");
+const { getNodeType, getRawSkillType, MAIN_NODE_TYPES } = require("./skillTreeMap");
 
-// ── Anchor depuis le suffixe du pointId Enka ──
-// Confirmé sur données réelles (UID 701536690) : le suffixe à 3 chiffres
-// du pointId suit un schéma stable, identique pour tous les persos :
-//   001-004 = 4 aptitudes principales, 007 = Technique
-//   101-103 = 3 traces majeures (A2/A4/A6)
-//   201-210 = 10 nœuds de stats mineurs
-//   301-302 = mnémesprit (compétence/talent), confirmé sur Cyrène côté HoYoLab
+// Les suffixes Enka identifient les positions de l'arbre de traces.
 const SUFFIX_TO_ANCHOR = {
   "001": "Point01",
   "002": "Point02",
@@ -65,8 +49,7 @@ const ANCHOR_TO_SKILL_TYPE = {
   Point05: "Maze",
 };
 
-// Plafonds de base. Le bonus d'Éidolons reste séparé dans bonusLevel afin
-// d'afficher 10+2 au lieu de transformer ce niveau en 12.
+// Les bonus d'Éidolons restent séparés du niveau de base.
 const MAX_LEVEL_BY_ANCHOR = {
   Point01: 6,
   Point02: 10,
@@ -79,7 +62,7 @@ const MAX_LEVEL_BY_ANCHOR = {
   Point19: 6,
   Point20: 6,
 };
-const getMaxLevel = (anchor) => MAX_LEVEL_BY_ANCHOR[anchor] || 1; // nœuds mineurs = 1 par défaut
+const getMaxLevel = (anchor) => MAX_LEVEL_BY_ANCHOR[anchor] || 1;
 
 const getEidolonBonus = (anchor, eidolons = 0) => {
   const level = Number(eidolons) || 0;
@@ -96,7 +79,7 @@ const classifyPointId = (pointId) => {
   return { anchor, type };
 };
 
-// ── Libellés de propriétés (types _flat.props d'Enka) ──
+// Libellés des propriétés envoyées par Enka.
 const PROPERTY_LABELS = {
   HPDelta: "PV",
   HPAddedRatio: "PV",
@@ -123,9 +106,7 @@ const PROPERTY_LABELS = {
   ImaginaryAddedRatio: "Bonus DGT Imaginaire",
 };
 
-// Convention HSR stable : tout ce qui finit par "Delta" est une valeur
-// plate ; le reste (Ratio, Chance, Damage, Base, Probability,
-// Resistance) est un pourcentage.
+// Les propriétés Delta sont plates ; les autres sont exprimées en pourcentage.
 const isPercentType = (type) => !type.endsWith("Delta");
 
 const formatPropValue = (type, value) => {
@@ -227,11 +208,7 @@ const extractEnkaRelicSets = (relicList) => {
  * l'endpoint HoYoLab rpgcultivate.
  *
  * @param {Array} skillTreeList  enkaDetail.skillTreeList
- * @param {Array} originalSkillTree  character.skillTree AVANT fusion —
- *   sert uniquement à récupérer les icônes (Enka n'en fournit pas). Les
- *   nœuds nouvellement ajoutés par Enka (Technique, stats mineurs 09-18)
- *   n'auront pas d'icône, faute de source — c'est une limite, pas une
- *   régression, puisque HoYoLab ne les envoyait jamais non plus.
+ * @param {Array} originalSkillTree Arbre initial utilisé pour récupérer les icônes.
  */
 const buildEnkaSkillTree = (skillTreeList, originalSkillTree = [], eidolons = 0) => {
   const iconByAnchor = {};
@@ -242,19 +219,9 @@ const buildEnkaSkillTree = (skillTreeList, originalSkillTree = [], eidolons = 0)
   return skillTreeList
     .map((point) => {
       const { anchor, type } = classifyPointId(point.pointId);
-      if (!anchor) return null; // suffixe non reconnu (ex: eidolon bonus atypique) — ignoré proprement
+      if (!anchor) return null;
 
-      // Les 5 aptitudes principales (Point01-05) doivent tenter le
-      // fallback d'ID dérivé (character_skills.json) en plus de
-      // character_skill_trees.json — resolveSkillText ne le fait que si
-      // kind === "skill".
-      const isMainAbility = [
-        "skill_basic",
-        "skill_skill",
-        "skill_ultra",
-        "skill_talent",
-        "skill_tech",
-      ].includes(type);
+      const isMainAbility = MAIN_NODE_TYPES.has(type);
       const resolved = resolveSkillText(
         point.pointId,
         isMainAbility ? "skill" : "tree",
@@ -266,14 +233,14 @@ const buildEnkaSkillTree = (skillTreeList, originalSkillTree = [], eidolons = 0)
       return {
         id: String(point.pointId),
         anchor,
-        parent: null, // non fourni par Enka — pathLayouts utilise les anchors, pas parent
+        parent: null,
         type,
         level,
         maxLevel,
         bonusLevel,
         icon: iconByAnchor[anchor] || resolved.icon || null,
-        propLabel: resolved.name || null,
-        name: resolved.name || null,
+        propLabel: type === "stat_node" ? shortenStatLabel(resolved.name) : resolved.name || null,
+        name: type === "stat_node" ? shortenStatLabel(resolved.name) : resolved.name || null,
         description: resolved.description || "",
       };
     })
@@ -286,15 +253,7 @@ const buildEnkaSkillTree = (skillTreeList, originalSkillTree = [], eidolons = 0)
  */
 const buildEnkaSkills = (skillTree) => {
   return skillTree
-    .filter((n) =>
-      [
-        "skill_basic",
-        "skill_skill",
-        "skill_ultra",
-        "skill_talent",
-        "skill_tech",
-      ].includes(n.type),
-    )
+    .filter((n) => MAIN_NODE_TYPES.has(n.type))
     .map((n) => {
       const anchor = n.anchor;
       const rawType = ANCHOR_TO_SKILL_TYPE[anchor] || "Maze";
@@ -317,8 +276,7 @@ const buildEnkaSkills = (skillTree) => {
 
 /**
  * Fusionne les données Enka sur un personnage déjà sérialisé (HoYoLab).
- * Ne lève jamais d'erreur — en cas de souci, retourne le personnage
- * original inchangé.
+ * Retourne le personnage initial si l'enrichissement échoue.
  * @param {object} character  personnage déjà sérialisé par character.js
  * @param {object|null} enkaDetail  entrée correspondante de avatarDetailList
  */
@@ -359,7 +317,7 @@ const mergeEnkaIntoCharacter = (character, enkaDetail) => {
       relicSets: relicSets.length > 0 ? relicSets : character.relicSets,
       skillTree: skillTree.length > 0 ? skillTree : character.skillTree,
       skills: skills.length > 0 ? skills : character.skills,
-      enrichedByEnka: true, // permet au frontend/debug de savoir d'où viennent les données si besoin
+      enrichedByEnka: true,
     };
   } catch (err) {
     console.warn(

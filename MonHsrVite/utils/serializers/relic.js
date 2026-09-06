@@ -1,13 +1,4 @@
-// utils/serializers/relic.js
-//
-// ⚠️ GAP CONNU : detail.relics_v2.dress_relics ne donne JAMAIS les valeurs
-// numériques (ni la stat principale, ni les sous-stats) — seulement le
-// TYPE de stat principale (ex: "PV", "Chances de coup critique"). Les
-// sous-stats (les 4 lignes secondaires par relique) sont absentes à 100%.
-//
-// On retourne donc subStats: [] systématiquement (le frontend masque déjà
-// cette section si vide — RelicCard.jsx / RelicSection.jsx) et
-// mainStat.value: null plutôt que d'inventer un chiffre.
+// Sérialise les reliques HoYoLab, dont les valeurs détaillées sont limitées.
 
 const RELIC_SLOT_LABELS = {
   HEAD: "Tête",
@@ -34,20 +25,16 @@ const serializeRelic = (relic) => {
     level: relic.level != null ? Number(relic.level) : null,
     rarity: relic.rarity != null ? Number(relic.rarity) : null,
 
-    // ⚠️ Valeur numérique indisponible — voir note en tête de fichier.
     mainStat: relic.main_property_name
       ? { property: relic.main_property_name, value: null, isPercent: null }
       : null,
 
-    // ⚠️ Toujours vide — l'API ne fournit pas les sous-stats du tout.
     subStats: [],
   };
 };
 
 /**
- * Extrait les bonus de set uniques à partir de la liste de reliques
- * équipées (contrairement à Mihomo, l'API ne donne pas de liste
- * "relicSets" séparée avec le compte de pièces — on le déduit ici).
+ * Extrait les bonus de set à partir des reliques équipées.
  * @param {Array} dressRelics  detail.relics_v2.dress_relics
  */
 const extractRelicSets = (dressRelics) => {

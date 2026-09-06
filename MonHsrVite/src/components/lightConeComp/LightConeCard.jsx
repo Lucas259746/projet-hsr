@@ -1,7 +1,4 @@
-// ⚠️ Le rang de superposition (1-5) n'est jamais fourni par l'API
-// HoYoLab actuelle — affiché en "?" plutôt qu'une valeur inventée.
-// Le splash art (portrait) n'est pas fourni non plus, contrairement à
-// l'ancien système imageMap — cette section a été retirée.
+// HoYoLab ne fournit pas le rang réel ni l'illustration complète du cône.
 
 function LightConeCard({ lightCone }) {
   if (!lightCone) {

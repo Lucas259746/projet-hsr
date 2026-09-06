@@ -13,40 +13,27 @@ const serializeCharacter = require("./character");
 const { mergeEnkaIntoCharacter } = require("./enkaEnrich");
 
 /**
- * Fonction principale : récupère et nettoie le profil complet d'un joueur
- * à partir de l'API HoYoLab (roster + détail par personnage possédé).
- *
- * ⚠️ Peut prendre 30-60s pour un roster complet (l'API HoYoLab impose un
- * rate-limit strict — voir config/hoyolab.js). Pense à mettre ce résultat
- * en cache côté serveur (Redis, fichier, etc.) plutôt que de le refetch
- * à chaque requête entrante.
+ * Récupère et nettoie le profil complet d'un joueur.
  *
  * @param {string} userId  UID Star Rail
- * @param {string} region  ex: "prod_official_eur" (requis, contrairement
- *   à Mihomo qui n'avait besoin que de la langue)
- * @param {string} language  ex: "fr" — utilisé pour les caches Mar-7th
+ * @param {string} region Code de serveur HoYoLab.
+ * @param {string} language Langue utilisée par les caches de texte.
  */
 const getUserData = async (userId, region, language = "fr") => {
   try {
-    // Charge les caches externes (Mar-7th) en parallèle — chacun échoue
-    // silencieusement de son côté si indisponible (voir leurs fichiers
-    // respectifs), donc pas de Promise.all qui casserait tout en cas
-    // d'échec d'un seul.
+    // Un cache indisponible ne doit pas bloquer les autres sources.
     await Promise.allSettled([
       loadLightConeCache(language),
       loadSkillCache(language),
       loadRelicCache(language),
     ]);
 
-    // fetchEnkaShowcase() est déjà 100% résiliente (voir config/enkaNetwork.js)
-    // — jamais d'erreur, jamais de blocage, tableau vide si indisponible.
     const [profile, enkaShowcase] = await Promise.all([
       fetchFullProfile(userId, region),
       fetchEnkaShowcase(userId),
     ]);
     const { userInfo, characters } = profile;
 
-    // Index rapide par avatarId pour la fusion
     const enkaByAvatarId = {};
     for (const detail of enkaShowcase) {
       enkaByAvatarId[String(detail.avatarId)] = detail;

@@ -1,3 +1,4 @@
+// Résout les identifiants de reliques vers leurs données lisibles.
 // config/relicCache.js
 //
 // Enka.Network donne les valeurs de stats déjà calculées pour les

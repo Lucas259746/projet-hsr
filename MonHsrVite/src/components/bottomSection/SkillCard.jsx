@@ -1,9 +1,7 @@
 import { sanitizeName, sanitizeAndFormatDescription, formatSkillLevel } from "../../utils/textFormat";
 import { SKILL_TYPE_CONFIG } from "../../constants/skillTypeConfig";
 
-// ── Bloc de description d'une forme (réutilisé dans SkillTreePanel aussi) ──
-// icon vient désormais directement de l'objet form (URL fournie par
-// HoYoLab), plus besoin de imageMap/getSkillIconForForm.
+// Affiche une forme d'aptitude et sa description.
 export function SkillForm({ form, color, isFirst }) {
   const cfg = SKILL_TYPE_CONFIG[form.type] || { label: form.typeText || form.type, color };
 
@@ -59,7 +57,7 @@ export function SkillForm({ form, color, isFirst }) {
   );
 }
 
-// ── Carte cliquable dans la colonne gauche ──
+// Carte d'aptitude sélectionnable.
 export default function SkillCard({ skill, isSelected, onClick }) {
   const cfg = SKILL_TYPE_CONFIG[skill.type] || {
     label: skill.typeText || skill.type || "Aptitude",

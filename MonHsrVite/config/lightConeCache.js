@@ -1,3 +1,4 @@
+// Charge et met en cache les textes des cônes de lumière.
 // config/lightConeCache.js
 //
 // Charge au démarrage les descriptions des light cones depuis le dépôt statique

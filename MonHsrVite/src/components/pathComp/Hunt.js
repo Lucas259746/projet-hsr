@@ -1,14 +1,18 @@
+// Coordonnées de l'arbre de la voie de la Chasse.
 const Hunt = {
   name: "Voie de la Chasse",
   positions: {
+    // main skills
     Point01: { x: 55, y: 215 },
     Point02: { x: 165, y: 215 },
     Point03: { x: 275, y: 215 },
     Point04: { x: 385, y: 215 },
     Point05: { x: 495, y: 215 },
+    // passive skills
     Point06: { x: 220, y: 115 },
     Point07: { x: 330, y: 115 },
     Point08: { x: 220, y: 315 },
+    // small nodes
     Point09: { x: 110, y: 115 },
     Point10: { x: 440, y: 115 },
     Point11: { x: 110, y: 315 },

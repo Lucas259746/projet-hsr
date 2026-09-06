@@ -1,3 +1,4 @@
+// Nettoie et formate les textes reçus des APIs du jeu.
 const genderPattern = /\{F#([^}]*)\}\{M#[^}]*\}/gi;
 const reverseGenderPattern = /\{M#([^}]*)\}\{F#[^}]*\}/gi;
 const genderTagPattern = /\{[FM]#([^}]*)\}/gi;
@@ -13,6 +14,32 @@ function removeGenderVariants(value) {
 export const sanitizeName = (value) => {
   if (!value) return "";
   return removeGenderVariants(String(value).replace(/<\/?unbreak>/gi, "")).trim();
+};
+
+const SHORT_STAT_LABELS = [
+  [/(?:points? de vie|pv)/i, "PV"],
+  [/(?:attaque|atk)/i, "ATQ"],
+  [/(?:défense|defense|def)/i, "DÉF"],
+  [/(?:vitesse|speed|vit)/i, "VIT"],
+  [/(?:chance.*critique|taux.*critique|coup critique)/i, "Chance crit"],
+  [/(?:dégâts? critiques?|degats? critiques?|dgt critiques?)/i, "DGT crit"],
+  [/(?:chances? d'effet|taux d'effet)/i, "Chance effet"],
+  [/(?:résistance?|res)\s+(?:aux\s+)?effets/i, "RES effets"],
+  [/effet de rupture/i, "Rupture"],
+  [/taux de soin/i, "Soin"],
+  [/(?:régénération?|regeneration?)\s+d'énergie/i, "Énergie"],
+  [/bonus (?:dégâts?|dgt) (physique|feu|glace|foudre|vent|quantique|imaginaire)/i, (_, element) => `DGT ${element}`],
+];
+
+export const shortenStatLabel = (value) => {
+  if (!value) return value;
+  const label = String(value).replace(/<[^>]+>/g, "").trim();
+  const match = SHORT_STAT_LABELS.find(([pattern]) => pattern.test(label));
+  return match
+    ? typeof match[1] === "function"
+      ? label.replace(match[0], match[1])
+      : match[1]
+    : label;
 };
 
 export const formatSkillLevel = (level, bonusLevel = 0) =>

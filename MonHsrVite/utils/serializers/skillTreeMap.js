@@ -1,14 +1,6 @@
-// utils/serializers/skillTreeMap.js
-//
-// Remplace l'ancienne détection de type de nœud basée sur le nom de
-// fichier icône (fragile, spécifique à Mihomo). La nouvelle API HoYoLab
-// donne un signal stable : anchor + point_type. Comme pathLayouts.js
-// utilise déjà les mêmes clés Point01-Point18, aucune modification des
-// layouts n'est nécessaire — seule cette correspondance change.
+// Détermine le type d'un nœud à partir de son anchor et de point_type.
 
-// Point01-04 = les 4 aptitudes principales (point_type: 2)
-// Point05 = technique — absente des exemples observés jusqu'ici ; gérée
-// par sécurité mais peut ne jamais apparaître dans cette API.
+// Les points 01 à 05 représentent les aptitudes principales.
 const ANCHOR_TO_NODE_TYPE = {
   Point01: "skill_basic",
   Point02: "skill_skill",
@@ -17,9 +9,7 @@ const ANCHOR_TO_NODE_TYPE = {
   Point05: "skill_tech",
 };
 
-// Même mapping mais vers le "type" brut attendu par SKILL_TYPE_CONFIG
-// (SkillCard.jsx, BottomSection.jsx, useBottomSection.js) — inchangé
-// niveau frontend.
+// Types bruts attendus par l'interface.
 const ANCHOR_TO_SKILL_TYPE = {
   Point01: "Normal",
   Point02: "BPSkill",
@@ -28,9 +18,10 @@ const ANCHOR_TO_SKILL_TYPE = {
   Point05: "Maze",
 };
 
-// Point06/07/08 = les 3 traces majeures (point_type: 3), toujours dans
-// cet ordre A2 → A4 → A6 (confirmé par min_level_limit croissant : 31,
-// 51, 71 dans les deux personnages observés).
+// Types qui correspondent aux cinq aptitudes affichées comme compétences.
+const MAIN_NODE_TYPES = new Set(Object.values(ANCHOR_TO_NODE_TYPE));
+
+// Les traces majeures suivent l'ordre A2, A4, A6.
 const MAJOR_TRACE_ANCHORS = ["Point06", "Point07", "Point08"];
 const MAJOR_TRACE_TYPES = ["trace_a2", "trace_a4", "trace_a6"];
 
@@ -44,27 +35,22 @@ const MAJOR_TRACE_TYPES = ["trace_a2", "trace_a4", "trace_a6"];
 const getNodeType = (node) => {
   const { anchor, point_type } = node;
 
-  // Aptitude principale
   if (point_type === 2 && ANCHOR_TO_NODE_TYPE[anchor]) {
     return ANCHOR_TO_NODE_TYPE[anchor];
   }
 
-  // Mnémesprit (Voie du Souvenir) — confirmé sur Cyrène (1415) :
-  // point_type 4, toujours anchor Point19 (compétence) / Point20 (talent).
   if (point_type === 4) {
     if (anchor === "Point19") return "memo_skill";
     if (anchor === "Point20") return "memo_talent";
-    return "memo_other"; // fallback si jamais un 3e nœud mnémesprit existe
+    return "memo_other";
   }
 
-  // Trace majeure — position dans MAJOR_TRACE_ANCHORS donne a2/a4/a6
   if (point_type === 3) {
     const idx = MAJOR_TRACE_ANCHORS.indexOf(anchor);
     if (idx !== -1) return MAJOR_TRACE_TYPES[idx];
-    return "trace_minor"; // fallback si jamais un point_type 3 imprévu apparaît
+    return "trace_minor";
   }
 
-  // Nœud de statistique (Point09-18)
   if (point_type === 1) {
     return "stat_node";
   }
@@ -83,4 +69,4 @@ const getRawSkillType = (node) => {
   return ANCHOR_TO_SKILL_TYPE[node.anchor] || null;
 };
 
-module.exports = { getNodeType, getRawSkillType };
+module.exports = { getNodeType, getRawSkillType, MAIN_NODE_TYPES };

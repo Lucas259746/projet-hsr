@@ -1,14 +1,18 @@
+// Coordonnées de l'arbre de la voie de la Préservation.
 const Preservation = {
   name: "Voie de la Préservation",
   positions: {
+    // main skills
     Point01: { x: 300, y: 60 },
     Point02: { x: 140, y: 215 },
     Point03: { x: 300, y: 215 },
     Point04: { x: 460, y: 215 },
     Point05: { x: 300, y: 370 },
+    // passive skills
     Point06: { x: 200, y: 120 },
     Point07: { x: 400, y: 120 },
     Point08: { x: 200, y: 310 },
+    // small nodes
     Point09: { x: 80, y: 140 },
     Point10: { x: 80, y: 290 },
     Point11: { x: 520, y: 140 },

@@ -1,14 +1,3 @@
-// ⚠️ Deux changements liés au backend :
-// 1. La région est désormais requise (voir SearchBox.jsx) — l'API
-//    HoYoLab en a besoin, contrairement à Mihomo.
-// 2. L'appel pointe vers la route hoyolab-full (à créer/adapter dans
-//    routes/api.js si ce n'est pas déjà fait — voir getUserData qui
-//    prend maintenant (userId, region, language)).
-// 3. Le chargement peut prendre 30-60s pour un roster complet (rate-limit
-//    HoYoLab côté backend) — le spinner Bulma existant couvre déjà ce cas,
-//    mais un message d'attente explicite a été ajouté pour éviter que
-//    l'utilisateur pense l'app plantée.
-
 import { useCallback, useEffect, useMemo, useState } from "react";
 import "./App.css";
 import SearchBox from "./components/SearchBox";
@@ -23,7 +12,7 @@ const languages = [
   { code: "de", name: "Deutsch" },
 ];
 
-// Codes serveur standards Star Rail (global) — à ajuster si besoin.
+// Codes de serveur attendus par l'API HoYoLab.
 const regions = [
   { code: "prod_official_eur", name: "Europe" },
   { code: "prod_official_usa", name: "Amérique" },

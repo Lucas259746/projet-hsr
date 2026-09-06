@@ -1,3 +1,4 @@
+// Affiche les détails du personnage actuellement sélectionné.
 import LightConeCard from "../lightConeComp/LightConeCard";
 import useCharacterDetails from "./useCharacterDetails";
 import CharacterStatsPanel from "./CharacterStatsPanel";
@@ -19,7 +20,7 @@ function CharacterDetails({ activeCharacter }) {
   return (
     <div className="column is-8 animate__animated animate__fadeIn">
       <div className="box character-details-box">
-        {/* ── SECTION EN-TÊTE ── */}
+        {/* En-tête du personnage */}
         <div className="columns is-vcentered mb-4 has-border-bottom-hsr pb-4">
           <div className="column is-narrow">
             {activeCharacter.iconUrl ? (
@@ -47,7 +48,7 @@ function CharacterDetails({ activeCharacter }) {
           </div>
         </div>
 
-        {/* ── SECTION BASSE ── */}
+        {/* Statistiques et équipements */}
         <div className="columns">
           <div className="column is-6">
             <h4 className="title is-5 font-orbitron has-text-gold mb-3">Statistiques</h4>

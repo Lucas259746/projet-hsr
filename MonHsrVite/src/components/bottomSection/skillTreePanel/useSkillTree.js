@@ -1,18 +1,9 @@
-// src/components/bottomSection/skillTreePanel/useSkillTree.js
-//
-// Avant : ce hook devinait le type de chaque nœud en cherchant des
-// morceaux de texte dans node.icon (ex: "basic_atk", "_skill."...) —
-// fragile, dépendant du nom de fichier Mihomo.
-// Maintenant : le backend (skillTreeMap.js) calcule déjà node.type de
-// façon fiable à partir de anchor + point_type. Ce hook n'a plus qu'à
-// s'en servir. node.icon est désormais une URL directe (plus besoin de
-// imageMap/getSkillIcon pour la résoudre).
-//
-// pathLayouts.js n'a besoin d'aucune modification : les clés d'anchor
-// (Point01-Point18) sont identiques des deux côtés.
+// Prépare les données nécessaires au rendu interactif de l'arbre de traces.
+// Le backend fournit déjà le type et les textes de chaque nœud.
 
 import { useState } from "react";
 import { PATH_LAYOUTS } from "../../pathComp/pathLayouts";
+import { shortenStatLabel } from "../../../utils/textFormat";
 
 const NODE_STYLE_BY_TYPE = {
   skill_basic: { color: "#c76904", size: 54, ring: true, shape: "rounded" },
@@ -40,8 +31,7 @@ const MAIN_SKILL_NODE_TYPES = new Set([
 ]);
 export const isMainSkill = (node) => MAIN_SKILL_NODE_TYPES.has(node?.type);
 
-// Correspondance type de nœud d'arbre -> type brut de skill (pour
-// regrouper avec activeCharacter.skills, comme avant).
+// Relie un nœud de l'arbre aux compétences regroupées dans le panneau.
 const NODE_TYPE_TO_SKILL_TYPE = {
   skill_basic: "Normal",
   skill_skill: "BPSkill",
@@ -112,23 +102,19 @@ export default function useSkillTree({ skillTree, path, allSkills }) {
 
   if (selectedNode) {
     if (isSelectedStat) {
-      // propLabel est désormais résolu côté backend (override manuel ou
-      // cache Mar-7th) — voir resolveSkillText.js
-      const statLabel = selectedNode.propLabel || "✦";
+      const statLabel = shortenStatLabel(selectedNode.propLabel || "✦");
       traceName = `Bonus de Statistique : ${statLabel}`;
       traceDesc = `Nœud d'optimisation débloquant un bonus permanent de ${statLabel} pour ce personnage.`;
     } else if (groupedForms) {
       traceName = groupedForms.primarySkill.name || selectedNode?.name || selectedNode?.anchor;
       traceDesc = null;
     } else {
-      // name/description déjà résolus côté backend (plus besoin de
-      // getTraceDetails/imageMap ici)
       traceName = selectedNode?.name || selectedNode?.anchor;
       traceDesc = selectedNode?.description;
     }
   }
 
-  const traceIcon = selectedNode?.icon || null; // URL directe désormais
+  const traceIcon = selectedNode?.icon || null;
   const selectedMaxLevel = selectedNode ? selectedNode.maxLevel || 1 : 1;
 
   return {

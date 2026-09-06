@@ -1,13 +1,4 @@
-// Extrait de CharacterDetails.jsx pour garder ce dernier court.
-//
-// ⚠️ Simplifié par rapport à l'ancienne version : l'ancien système
-// (icône + couleur par stat, décomposition base/bonus) reposait sur des
-// clés sémantiques ("crit_rate", "atk"...) que Mihomo fournissait.
-// L'API HoYoLab donne désormais des IDs numériques internes (stat.key
-// vaut "5", "6", "2"...) sans mapping fiable vers ces clés pour le
-// moment — plutôt que d'inventer une correspondance potentiellement
-// fausse, on affiche stat.name (déjà localisé par l'API) directement,
-// avec un style uniforme.
+// Affiche les statistiques déjà localisées par l'API.
 
 function CharacterStatsPanel({ stats }) {
   if (!stats?.length) {

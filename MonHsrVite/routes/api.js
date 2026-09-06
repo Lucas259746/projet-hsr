@@ -1,3 +1,4 @@
+// Définit les routes HTTP utilisées par le client React.
 const express = require("express");
 const router = express.Router();
 

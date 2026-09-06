@@ -1,14 +1,18 @@
+// Coordonnées de l'arbre de la voie de l'Érudition.
 const Erudition = {
   name: "Voie de l'Érudition",
   positions: {
+    // main skills
     Point01: { x: 300, y: 215 },
     Point02: { x: 300, y: 115 },
     Point03: { x: 390, y: 163 },
     Point04: { x: 390, y: 267 },
     Point05: { x: 300, y: 315 },
+    // passive skills
     Point06: { x: 210, y: 267 },
     Point07: { x: 210, y: 163 },
     Point08: { x: 300, y: 40 },
+    // small nodes
     Point09: { x: 120, y: 115 },
     Point10: { x: 480, y: 115 },
     Point11: { x: 480, y: 315 },

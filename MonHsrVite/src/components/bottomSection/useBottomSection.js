@@ -1,11 +1,3 @@
-// src/components/bottomSection/useBottomSection.js
-//
-// ⚠️ Les nœuds "mémo-sprite" (memo_skill/memo_talent) ne sont pas encore
-// vérifiés avec un vrai JSON HoYoLab pour un personnage qui en possède
-// (Sunday, Robin, Tribbie...). skillTreeMap.js (backend) ne produit pas
-// encore ces types — à corriger une fois testé avec un tel personnage.
-// En l'état, memoSkills sera probablement toujours vide.
-
 import { useState } from "react";
 import {
   MAIN_TYPES,
@@ -36,7 +28,7 @@ export default function useBottomSection(activeCharacter) {
           : "Talent mémo-sprite"),
       type: n.type,
       typeText: n.type,
-      icon: n.icon, // URL directe désormais
+      icon: n.icon,
       effect: null,
       level: n.level,
       maxLevel: n.maxLevel,

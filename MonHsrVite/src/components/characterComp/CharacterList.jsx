@@ -1,3 +1,4 @@
+// Affiche la liste des personnages sélectionnables.
 import { sanitizeName } from "../../utils/textFormat";
 
 function CharacterList({ profile, selectedIndex, onSelectCharacter }) {

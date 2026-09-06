@@ -1,10 +1,8 @@
-import { sanitizeAndFormatDescription, formatSkillLevel } from "../../../utils/textFormat";
+import { sanitizeAndFormatDescription, formatSkillLevel, shortenStatLabel } from "../../../utils/textFormat";
 import useSkillTree, { getNodeStyle, isStatNode, isMainSkill } from "./useSkillTree";
 import { SKILL_TYPE_CONFIG } from "../../../constants/skillTypeConfig";
 
-// ── Forme individuelle d'un skill (identique à SkillCard) ──
-// icon vient désormais directement de form.icon (URL fournie par
-// HoYoLab) — plus de charId/formIndex/imageMap ici.
+// Affiche une forme d'aptitude dans le panneau de l'arbre.
 function SkillForm({ form, color, isFirst }) {
   const cfg = SKILL_TYPE_CONFIG[form.type] || { label: form.typeText || form.type, color };
 
@@ -85,8 +83,7 @@ function SkillForm({ form, color, isFirst }) {
   );
 }
 
-// ── Nœud SVG interactif ──
-// node.icon est désormais une URL directe — plus de getLocalIconPath/charId.
+// Nœud interactif rendu dans le SVG.
 function Node({ node, pos, isSelected, onClick }) {
   const style = getNodeStyle(node);
   const stat = isStatNode(node);
@@ -161,14 +158,14 @@ function Node({ node, pos, isSelected, onClick }) {
         style={{ userSelect: "none", fontWeight: isMaxed ? "600" : "400" }}
       >
         {stat
-          ? node.propLabel || "✦"
+          ? shortenStatLabel(node.propLabel) || "✦"
           : `${formatSkillLevel(node.level, node.bonusLevel)}/${formatSkillLevel(nodeMaxLevel, node.bonusLevel)}`}
       </text>
     </g>
   );
 }
 
-// ── Panneau de détail d'un nœud sélectionné ──
+// Détail du nœud actuellement sélectionné.
 function NodeDetailPanel({
   selectedNode,
   selStyle,
@@ -257,7 +254,7 @@ function NodeDetailPanel({
                   flexShrink: 0,
                 }}
               >
-                {selectedNode.propLabel || "✦"}
+                {shortenStatLabel(selectedNode.propLabel) || "✦"}
               </div>
             ) : traceIcon ? (
               <img src={traceIcon} alt="" style={{ width: 36, height: 36, borderRadius: "7px", flexShrink: 0 }} />
@@ -303,10 +300,7 @@ function NodeDetailPanel({
   );
 }
 
-// ── Composant principal ──
-// charId accepté mais plus transmis à useSkillTree (n'en a plus besoin,
-// les icônes sont déjà résolues côté backend) — gardé en props par
-// compat si un futur usage en a besoin.
+// Coordonne le hook de données et le rendu de l'arbre.
 export default function SkillTreePanel({ skillTree, path, allSkills }) {
   const {
     hasData,

@@ -1,3 +1,4 @@
+// Récupère les données publiques de la vitrine Enka.Network.
 // config/enkaNetwork.js
 //
 // Enka.Network expose la VITRINE HoYoLab (comme Mihomo, mais toujours en

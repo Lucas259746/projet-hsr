@@ -1,6 +1,4 @@
-// Ajout du sélecteur de région : l'API HoYoLab (contrairement à Mihomo)
-// a besoin de savoir sur quel serveur se trouve le compte, en plus de
-// l'UID — voir config/hoyolab.js côté backend.
+// La région accompagne l'UID pour sélectionner le serveur HoYoLab.
 
 function SearchBox({
   userId,

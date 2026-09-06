@@ -1,34 +1,33 @@
+// Coordonnées de l'arbre de la voie de la Destruction.
 const Destruction = {
   name: "Voie de la Destruction",
   positions: {
-    // ── Colonne centrale ──
-    Point01: { x: 175, y: 280 }, // Basic ATK
-    Point02: { x: 475, y: 280 }, // Skill
-    Point04: { x: 320, y: 200 }, // Talent
-    Point03: { x: 320, y: 320 }, // Ultime
-    Point05: { x: 320, y: 400 }, // Technique
+    // main skills
+    Point01: { x: 175, y: 280 },
+    Point02: { x: 475, y: 280 },
+    Point04: { x: 320, y: 200 },
+    Point03: { x: 320, y: 320 },
+    Point05: { x: 320, y: 400 },
 
-    // ── Branches gauches ──
-    Point06: { x: 220, y: 420 }, // Trace A2  (sort de Skill)
-    Point07: { x: 420, y: 420 }, // Trace A4  (sort d'Ultime)
-    Point11: { x: 65, y: 320 }, // Stat      (autour A2, haut)
-    Point10: { x: 130, y: 370 }, // Stat      (autour A2, milieu)
-    Point09: { x: 320, y: 470 }, // Stat      (autour A4)
-    Point16: { x: 320, y: 50 }, // Stat      (sous Talent, gauche)
+    // passive skills
+    Point06: { x: 220, y: 420 },
+    Point07: { x: 420, y: 420 },
+    Point11: { x: 65, y: 320 },
+    Point10: { x: 130, y: 370 },
+    Point09: { x: 320, y: 470 },
+    Point16: { x: 320, y: 50 },
 
-    // ── Branches droites ──
-    Point08: { x: 320, y: 125 }, // Trace A6  (sort d'Ultime)
-    Point13: { x: 520, y: 370 }, // Stat      (autour A6, haut)
-    Point14: { x: 575, y: 320 }, // Stat      (autour A6, milieu)
-    Point15: { x: 550, y: 180 }, // Stat      (autour A6, bas)
-    Point12: { x: 100, y: 180 }, // Stat      (sous A6 / depuis Talent)
-    Point17: { x: 200, y: 70 }, // Stat      (sous Talent, droite)
+    // small nodes
+    Point08: { x: 320, y: 125 },
+    Point13: { x: 520, y: 370 },
+    Point14: { x: 575, y: 320 },
+    Point15: { x: 550, y: 180 },
+    Point12: { x: 100, y: 180 },
+    Point17: { x: 200, y: 70 },
 
-    // ── Coins haut ──
-    Point18: { x: 440, y: 70 }, // Stat      (depuis Basic ATK, gauche)
+    Point18: { x: 440, y: 70 },
   },
   rootConnections: [
-    // Colonne centrale
     ["Point01", "Point03"],
     ["Point02", "Point03"],
     ["Point04", "Point03"],

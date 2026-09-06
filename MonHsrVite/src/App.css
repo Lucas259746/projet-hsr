@@ -1,6 +1,4 @@
-﻿/* ==========================================
-   HONKAI STAR RAIL — BULMA THEME OVERRIDES
-   ========================================== */
+﻿/* Thème global de l'application. */
 
 :root {
   --hsr-bg: #0b0e14;
@@ -17,9 +15,7 @@
   --hsr-glow: 0 0 12px rgba(216, 180, 103, 0.12);
 }
 
-/* ==========================================
-   1. GLOBAL & TYPOGRAPHIE
-   ========================================== */
+/* Base et typographie. */
 
 html,
 body,
@@ -59,9 +55,7 @@ body {
   overflow-wrap: break-word;
 }
 
-/* ==========================================
-   2. SURCHARGE BULMA
-   ========================================== */
+/* Ajustements Bulma. */
 
 .box,
 .card,
@@ -105,9 +99,7 @@ body {
   font-weight: 700;
 }
 
-/* ==========================================
-   3. COMPOSANTS SPÉCIFIQUES HONKAI
-   ========================================== */
+/* Composants visuels principaux. */
 
 .hero.app-banner {
   background:
@@ -167,9 +159,7 @@ body {
   background: var(--hsr-rarity-3);
 }
 
-/* ==========================================
-   4. SKILL CARDS
-   ========================================== */
+/* Cartes d'aptitudes. */
 
 .skill-card {
   border-radius: 8px;
@@ -182,7 +172,7 @@ body {
   background-color: rgba(255, 255, 255, 0.06);
 }
 
-/* Description inline — s'ouvre au survol */
+/* Description visible au survol. */
 .skill-desc {
   font-size: 0.72rem;
   line-height: 1.5;
@@ -197,14 +187,12 @@ body {
   display: block;
 }
 
-/* Substats des reliques */
+/* Sous-statistiques des reliques. */
 .relic-substats {
   border-left: 2px dashed rgba(216, 180, 103, 0.2);
 }
 
-/* ==========================================
-   5. ONGLETS SECTION BASSE (Skills/Reliques/Mémo)
-   ========================================== */
+/* Navigation de la section basse. */
 
 .bottom-tabs-nav {
   display: flex;
@@ -242,7 +230,7 @@ body {
   padding: 20px 0 0 0;
 }
 
-/* Badge "Mémo-sprite" */
+/* Badge mémo-sprite. */
 .memo-badge {
   display: inline-flex;
   align-items: center;

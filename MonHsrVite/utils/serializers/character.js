@@ -1,13 +1,7 @@
-// utils/serializers/character.js
-//
-// Combine detail.basic (données de liste) + detail.detail (détail complet)
-// d'un personnage HoYoLab vers le format que le frontend React consomme
-// déjà (relics, lightCone, skillTree, stats...). Voir les fichiers
-// lightCone.js / relic.js / sumStats.js pour le détail des champs
-// désormais indisponibles (superimposition, sous-stats, stats complètes).
+// Convertit les données HoYoLab vers le modèle consommé par React.
 
 const serializeRelic = require("./relic");
-const { extractRelicSets } = require("./relic");
+const { extractRelicSets } = serializeRelic;
 const serializeLightCone = require("./lightCone");
 const serializeStats = require("./sumStats");
 const {
@@ -17,10 +11,9 @@ const {
   getAscensionFromLevel,
 } = require("./helpers");
 const { getNodeType, getRawSkillType } = require("./skillTreeMap");
-const { resolveSkillText } = require("./resolveSkillText");
+const { resolveSkillText, shortenStatLabel } = require("./resolveSkillText");
 
-// Config d'affichage pour les 4 aptitudes principales — inchangé côté
-// frontend (SkillCard.jsx / BottomSection.jsx attendent ces clés brutes).
+// Correspondance entre les types bruts et les libellés affichés.
 const SKILL_TYPE_LABELS = {
   Normal: "Attaque de base",
   BPSkill: "Compétence",
@@ -28,6 +21,10 @@ const SKILL_TYPE_LABELS = {
   Talent: "Talent",
   Maze: "Technique",
 };
+
+// Les statistiques utilisent un libellé court pour rester lisibles dans le SVG.
+const getNodeLabel = (type, resolvedName, fallback = null) =>
+  type === "stat_node" ? shortenStatLabel(resolvedName) : resolvedName || fallback;
 
 /**
  * Sérialise une des 4 aptitudes principales (depuis detail.summary.skills,
@@ -39,8 +36,6 @@ const serializeMainSkill = (node) => {
 
   return {
     id: String(node.point_id),
-    // Nom réel via override/Mar-7th si disponible, sinon le libellé
-    // générique renvoyé par HoYoLab (ex: "Ultime", "Talent"...).
     name:
       resolved.name ||
       node.item_name ||
@@ -65,8 +60,9 @@ const serializeMainSkill = (node) => {
  * besoin d'aucune modification.
  */
 const serializeTraceNode = (node) => {
-  const type = getNodeType(node); // trace_a2/a4/a6, stat_node, skill_*
+  const type = getNodeType(node);
   const resolved = resolveSkillText(node.point_id, "tree");
+  const name = getNodeLabel(type, resolved.name, node.item_name);
 
   return {
     id: String(node.point_id),
@@ -77,12 +73,8 @@ const serializeTraceNode = (node) => {
     level: node.cur_level != null ? Number(node.cur_level) : null,
     maxLevel: node.max_level != null ? Number(node.max_level) : null,
     icon: node.item_url || null,
-    // ⚠️ Le libellé de stat (ex: "VIT", "CRIT%") pour les nœuds mineurs
-    // dépend entièrement du cache Mar-7th/overrides — l'API HoYoLab ne le
-    // fournit pas. Reste null si ni l'un ni l'autre n'a l'info ; le
-    // frontend retombe déjà sur "✦" dans ce cas (useSkillTree.js).
-    propLabel: resolved.name || null,
-    name: resolved.name || node.item_name || null,
+    propLabel: type === "stat_node" ? name : resolved.name || null,
+    name,
     description: resolved.description || "",
   };
 };
@@ -93,13 +85,7 @@ const serializeTraceNode = (node) => {
  * detail.summary.skills_other.
  */
 /**
- * La Technique (anchor Point05) n'est JAMAIS renvoyée par l'endpoint
- * HoYoLab rpgcultivate — mais elle n'a besoin d'aucune donnée
- * spécifique au joueur : elle n'a qu'un seul niveau, pas de matériaux
- * de montée, et le texte est fixe pour un personnage donné. On peut
- * donc la synthétiser pour TOUS les persos (vitrine ou non) juste avec
- * son ID prévisible ({avatarId}007, confirmé sur données Enka réelles)
- * et le cache Mar-7th qu'on a déjà.
+ * Construit la Technique à partir de son identifiant prévisible et du cache.
  */
 const buildTechniqueNode = (avatarId) => {
   const pointId = `${avatarId}007`;

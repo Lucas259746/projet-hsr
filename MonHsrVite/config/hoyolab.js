@@ -1,3 +1,4 @@
+// Fournit les appels vers l'API publique HoYoLab.
 // config/hoyolab.js
 //
 // Utilise l'API publique "rpgcultivate" d'HoYoLab (celle qui alimente le

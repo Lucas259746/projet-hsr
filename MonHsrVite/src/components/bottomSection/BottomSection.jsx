@@ -30,8 +30,7 @@ function RelicSetsPanel({ relicSets }) {
   );
 }
 
-// icon vient désormais directement de skill.icon (URL fournie par
-// HoYoLab) — plus de charId ni de imageMap ici.
+// Affiche le détail d'une aptitude sélectionnée.
 function SkillDetailPanel({ skill }) {
   if (!skill) {
     return (
@@ -243,9 +242,6 @@ export default function BottomSection({ activeCharacter }) {
         )}
 
         {activeTab === "tree" && (
-          // charId conservé par précaution : SkillTreePanel.jsx n'a jamais
-          // été vu dans son intégralité, il pourrait s'en servir pour
-          // autre chose que la logique déjà déplacée dans useSkillTree.js
           <SkillTreePanel
             skillTree={skillTree}
             path={activeCharacter.path}
