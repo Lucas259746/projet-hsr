@@ -1,6 +1,10 @@
 // utils/serializers/index.js
 
-const { fetchFullProfile } = require("../../config/hoyolab");
+const {
+  fetchFullProfile,
+  fetchBaseProfile,
+  fetchAvatarDetailWithRetry,
+} = require("../../config/hoyolab");
 const { fetchEnkaShowcase } = require("../../config/enkaNetwork");
 const { loadCache: loadLightConeCache } = require("../../config/lightConeCache");
 const { loadCache: loadSkillCache } = require("../../config/characterSkillCache");
@@ -52,7 +56,6 @@ const getUserData = async (userId, region, language = "fr") => {
       .map(serializeCharacter)
       .filter(Boolean)
       .map((char) => mergeEnkaIntoCharacter(char, enkaByAvatarId[char.id]));
-
     return {
       uid: String(userId),
       nickname: userInfo?.nickname || "Joueur",
@@ -69,4 +72,44 @@ const getUserData = async (userId, region, language = "fr") => {
   }
 };
 
-module.exports = { getUserData };
+const getUserRoster = async (userId, region) => {
+  const { userInfo, ownedAvatars } = await fetchBaseProfile(userId, region);
+  const characterList = ownedAvatars
+    .map((basic) => serializeCharacter({ basic, detail: null }))
+    .filter(Boolean);
+
+  return {
+    uid: String(userId),
+    nickname: userInfo?.nickname || "Joueur",
+    level: userInfo?.level != null ? Number(userInfo.level) : null,
+    worldLevel: null,
+    characterCount: characterList.length,
+    lightConeCount: null,
+    relicCount: null,
+    characterList,
+  };
+};
+
+const getCharacterData = async (userId, region, itemId, language = "fr") => {
+  await Promise.allSettled([
+    loadLightConeCache(language),
+    loadSkillCache(language),
+    loadRelicCache(language),
+  ]);
+
+  const { ownedAvatars } = await fetchBaseProfile(userId, region);
+  const basic = ownedAvatars.find((avatar) => String(avatar.item_id) === String(itemId));
+  if (!basic) throw new Error(`Personnage ${itemId} introuvable dans le roster`);
+
+  const [detail, enkaShowcase] = await Promise.all([
+    fetchAvatarDetailWithRetry(userId, region, itemId),
+    fetchEnkaShowcase(userId),
+  ]);
+  const enkaDetail = enkaShowcase.find((entry) => String(entry.avatarId) === String(itemId));
+  return mergeEnkaIntoCharacter(
+    serializeCharacter({ basic, detail }),
+    enkaDetail,
+  );
+};
+
+module.exports = { getUserData, getUserRoster, getCharacterData };

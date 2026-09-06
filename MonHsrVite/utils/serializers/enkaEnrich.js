@@ -65,9 +65,8 @@ const ANCHOR_TO_SKILL_TYPE = {
   Point05: "Maze",
 };
 
-// Max levels standards du jeu — Enka ne les fournit pas, ce sont des
-// valeurs connues et stables. Point19/20 (mnémesprit) à vérifier plus
-// largement : observé à 6 sur un échantillon, pas garanti à 100%.
+// Plafonds de base. Le bonus d'Éidolons reste séparé dans bonusLevel afin
+// d'afficher 10+2 au lieu de transformer ce niveau en 12.
 const MAX_LEVEL_BY_ANCHOR = {
   Point01: 6,
   Point02: 10,
@@ -81,6 +80,14 @@ const MAX_LEVEL_BY_ANCHOR = {
   Point20: 6,
 };
 const getMaxLevel = (anchor) => MAX_LEVEL_BY_ANCHOR[anchor] || 1; // nœuds mineurs = 1 par défaut
+
+const getEidolonBonus = (anchor, eidolons = 0) => {
+  const level = Number(eidolons) || 0;
+  if (anchor === "Point01") return level >= 5 ? 1 : 0;
+  if (["Point02", "Point04"].includes(anchor)) return level >= 3 ? 2 : 0;
+  if (anchor === "Point03") return level >= 5 ? 2 : 0;
+  return 0;
+};
 
 const classifyPointId = (pointId) => {
   const suffix = String(pointId).slice(-3);
@@ -226,7 +233,7 @@ const extractEnkaRelicSets = (relicList) => {
  *   n'auront pas d'icône, faute de source — c'est une limite, pas une
  *   régression, puisque HoYoLab ne les envoyait jamais non plus.
  */
-const buildEnkaSkillTree = (skillTreeList, originalSkillTree = []) => {
+const buildEnkaSkillTree = (skillTreeList, originalSkillTree = [], eidolons = 0) => {
   const iconByAnchor = {};
   for (const node of originalSkillTree) {
     if (node.anchor && node.icon) iconByAnchor[node.anchor] = node.icon;
@@ -252,15 +259,18 @@ const buildEnkaSkillTree = (skillTreeList, originalSkillTree = []) => {
         point.pointId,
         isMainAbility ? "skill" : "tree",
       );
+      const level = Math.min(Number(point.level) || 0, getMaxLevel(anchor));
       const maxLevel = getMaxLevel(anchor);
+      const bonusLevel = getEidolonBonus(anchor, eidolons);
 
       return {
         id: String(point.pointId),
         anchor,
         parent: null, // non fourni par Enka — pathLayouts utilise les anchors, pas parent
         type,
-        level: Number(point.level),
+        level,
         maxLevel,
+        bonusLevel,
         icon: iconByAnchor[anchor] || resolved.icon || null,
         propLabel: resolved.name || null,
         name: resolved.name || null,
@@ -297,6 +307,7 @@ const buildEnkaSkills = (skillTree) => {
         effect: null,
         level: n.level,
         maxLevel: n.maxLevel,
+        bonusLevel: n.bonusLevel || 0,
         description: n.description || "",
         simpleDesc: "",
         params: [],
@@ -331,6 +342,7 @@ const mergeEnkaIntoCharacter = (character, enkaDetail) => {
     const skillTree = buildEnkaSkillTree(
       enkaDetail.skillTreeList || [],
       character.skillTree || [],
+      character.eidolons || enkaDetail.rank,
     );
     const skills = buildEnkaSkills(skillTree);
 

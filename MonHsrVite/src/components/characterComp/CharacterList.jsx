@@ -1,6 +1,20 @@
 import { sanitizeName } from "../../utils/textFormat";
 
 function CharacterList({ profile, selectedIndex, onSelectCharacter }) {
+  const characters = profile.characterList || [];
+  const renderCharacter = (character, index) => (
+    <button
+      key={character.id || index}
+      className={`button is-fullwidth character-card mb-2 font-orbitron ${selectedIndex === index ? "is-active" : ""}`}
+      onClick={() => onSelectCharacter(index)}
+    >
+      <div className="is-flex is-justify-content-space-between is-align-items-center is-fullwidth">
+        <span>{sanitizeName(character.name)}</span>
+        <span className="tag is-dark">Lvl {character.level}</span>
+      </div>
+    </button>
+  );
+
   return (
     <div className="column is-4">
       <div className="box character-list-box">
@@ -11,20 +25,13 @@ function CharacterList({ profile, selectedIndex, onSelectCharacter }) {
           </p>
         </div>
 
-        <h3 className="title is-6 font-orbitron mb-3 has-text-gold-light">Membres de la vitrine</h3>
+        <h3 className="title is-6 font-orbitron mb-3 has-text-gold-light">
+          Personnages
+        </h3>
         <div className="character-buttons-container">
-          {profile.characterList?.map((char, index) => (
-            <button
-              key={char.id || index}
-              className={`button is-fullwidth character-card mb-2 font-orbitron ${selectedIndex === index ? "is-active" : ""}`}
-              onClick={() => onSelectCharacter(index)}
-            >
-              <div className="is-flex is-justify-content-space-between is-align-items-center is-fullwidth">
-                <span>{sanitizeName(char.name)}</span>
-                <span className="tag is-dark">Lvl {char.level}</span>
-              </div>
-            </button>
-          ))}
+          {characters.length > 0
+            ? characters.map((character, index) => renderCharacter(character, index))
+            : <p className="has-text-grey-light is-size-7">Aucun personnage en vitrine.</p>}
         </div>
       </div>
     </div>

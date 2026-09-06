@@ -38,6 +38,7 @@ function App() {
   const [profile, setProfile] = useState(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [detailsLoading, setDetailsLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const activeCharacter = useMemo(
@@ -54,15 +55,16 @@ function App() {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(
-          `http://localhost:5000/api/user/${uid}/hoyolab-full?region=${reg}&language=${lang}`,
+        const rosterResponse = await fetch(
+          `http://localhost:5000/api/user/${uid}/hoyolab-roster?region=${reg}`,
         );
-        if (!response.ok) throw new Error("Profil introuvable ou erreur API");
-        const data = await response.json();
-        setProfile(data);
+        if (!rosterResponse.ok) throw new Error("Profil introuvable ou erreur API");
+        setProfile(await rosterResponse.json());
         setSelectedIndex(0);
+        setLoading(false);
       } catch (err) {
         setError(err.message);
+        setDetailsLoading(false);
       } finally {
         setLoading(false);
       }
@@ -71,8 +73,46 @@ function App() {
   );
 
   useEffect(() => {
+    if (!profile || !activeCharacter?.id || activeCharacter.detailsLoaded) return undefined;
+
+    let cancelled = false;
+    setDetailsLoading(true);
+    fetch(
+      `http://localhost:5000/api/user/${userId}/character/${activeCharacter.id}?region=${region}&language=${language}`,
+    )
+      .then((response) => {
+        if (!response.ok) throw new Error("Impossible de charger les détails du personnage");
+        return response.json();
+      })
+      .then((details) => {
+        if (cancelled) return;
+        setProfile((currentProfile) => {
+          if (!currentProfile) return currentProfile;
+          const characterList = currentProfile.characterList.map((character) =>
+            character.id === details.id ? { ...details, detailsLoaded: true } : character,
+          );
+          return { ...currentProfile, characterList };
+        });
+      })
+      .catch((detailsError) => {
+        if (!cancelled) console.error("Character details request failed:", detailsError);
+      })
+      .finally(() => {
+        if (!cancelled) setDetailsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeCharacter, language, profile, region, userId]);
+
+  useEffect(() => {
     if (!userId.trim()) return;
-    loadProfile();
+    const timeoutId = window.setTimeout(() => {
+      loadProfile();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -113,11 +153,17 @@ function App() {
 
           {loading && (
             <div className="notification is-info is-light font-orbitron">
-              Récupération du profil complet en cours — ça peut prendre jusqu'à une minute pour un gros roster.
+              Récupération de la liste des personnages en cours...
             </div>
           )}
 
-          {profile && !loading && (
+          {detailsLoading && profile && (
+            <div className="notification is-info is-light font-orbitron">
+              La liste est disponible; chargement des cônes, reliques et compétences en cours...
+            </div>
+          )}
+
+          {profile && (
             <>
               <div className="columns">
                 <CharacterList profile={profile} selectedIndex={selectedIndex} onSelectCharacter={setSelectedIndex} />

@@ -1,34 +1,33 @@
-// src/utils/textFormat.jsx
-//
-// Fonctions pures de nettoyage/format de texte, partagées par plusieurs
-// composants (CharacterDetails, SkillCard, BottomSection...).
-// Avant, SkillCard.jsx et BottomSection.jsx importaient ces fonctions
-// depuis CharacterDetails.jsx (un composant) — mauvaise pratique corrigée
-// ici avec un fichier utilitaire dédié.
+const genderPattern = /\{F#([^}]*)\}\{M#[^}]*\}/gi;
+const reverseGenderPattern = /\{M#([^}]*)\}\{F#[^}]*\}/gi;
+const genderTagPattern = /\{[FM]#([^}]*)\}/gi;
+const numericPlaceholderPattern = /#(\d+)\[[^\]]+\]/gi;
+
+function removeGenderVariants(value) {
+  return value
+    .replace(genderPattern, "$1")
+    .replace(reverseGenderPattern, "$1")
+    .replace(genderTagPattern, "$1");
+}
 
 export const sanitizeName = (value) => {
   if (!value) return "";
-  return String(value)
-    .replace(/<\/?unbreak>/gi, "")
-    .replace(/\{F#([^}]*)\}\{M#[^}]*\}/gi, "$1")
-    .replace(/\{M#([^}]*)\}\{F#[^}]*\}/gi, "$1")
-    .replace(/\{[FM]#([^}]*)\}/gi, "$1")
-    .trim();
+  return removeGenderVariants(String(value).replace(/<\/?unbreak>/gi, "")).trim();
 };
+
+export const formatSkillLevel = (level, bonusLevel = 0) =>
+  bonusLevel > 0 ? `${level}+${bonusLevel}` : String(level);
 
 export const sanitizeAndFormatDescription = (text) => {
   if (!text) return "Aucune description disponible.";
-  const cleaned = String(text)
+  const cleaned = removeGenderVariants(String(text))
     .replace(/<\/?u>/gi, "")
     .replace(/<\/?unbreak>/gi, "")
     .replace(/<\/?i>/gi, "")
-    .replace(/\{F#([^}]*)\}\{M#[^}]*\}/gi, "$1")
-    .replace(/\{M#([^}]*)\}\{F#[^}]*\}/gi, "$1")
-    .replace(/\{[FM]#([^}]*)\}/gi, "$1")
-    .replace(/\s+/g, " ")
-    .trim();
+    .replace(numericPlaceholderPattern, "valeur $1")
+    .replace(/\\n/g, "\n");
 
-  const lines = cleaned.split(/\\n|\n/g);
+  const lines = cleaned.split(/\n/g).map((line) => line.replace(/\s+/g, " ").trim());
   const colorRegex = /<color=([^>]+)>(.*?)<\/color>/gi;
 
   return lines.map((line, li) => {

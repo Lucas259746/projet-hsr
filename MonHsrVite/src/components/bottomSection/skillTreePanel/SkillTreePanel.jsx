@@ -1,4 +1,4 @@
-import { sanitizeAndFormatDescription } from "../../../utils/textFormat";
+import { sanitizeAndFormatDescription, formatSkillLevel } from "../../../utils/textFormat";
 import useSkillTree, { getNodeStyle, isStatNode, isMainSkill } from "./useSkillTree";
 import { SKILL_TYPE_CONFIG } from "../../../constants/skillTypeConfig";
 
@@ -65,7 +65,7 @@ function SkillForm({ form, color, isFirst }) {
             )}
           </div>
           <div style={{ color: "#666", fontSize: "0.6rem", fontFamily: "Orbitron, sans-serif", marginTop: "2px" }}>
-            Niv. {form.level} / {form.maxLevel}
+            Niv. {formatSkillLevel(form.level, form.bonusLevel)} / {formatSkillLevel(form.maxLevel, form.bonusLevel)}
           </div>
         </div>
       </div>
@@ -160,7 +160,9 @@ function Node({ node, pos, isSelected, onClick }) {
         fontFamily="Orbitron, sans-serif"
         style={{ userSelect: "none", fontWeight: isMaxed ? "600" : "400" }}
       >
-        {stat ? node.propLabel || "✦" : `${node.level}/${nodeMaxLevel}`}
+        {stat
+          ? node.propLabel || "✦"
+          : `${formatSkillLevel(node.level, node.bonusLevel)}/${formatSkillLevel(nodeMaxLevel, node.bonusLevel)}`}
       </text>
     </g>
   );
@@ -228,7 +230,7 @@ function NodeDetailPanel({
                 fontFamily: "Orbitron, sans-serif",
               }}
             >
-              Niv. {selectedNode.level} / {selectedMaxLevel}
+              Niv. {formatSkillLevel(selectedNode.level, selectedNode.bonusLevel)} / {formatSkillLevel(selectedMaxLevel, selectedNode.bonusLevel)}
             </span>
           </div>
           {groupedForms.forms.map((form, idx) => (
@@ -279,7 +281,7 @@ function NodeDetailPanel({
                   fontFamily: "Orbitron, sans-serif",
                 }}
               >
-                Niv. {selectedNode.level} / {selectedMaxLevel}
+                Niv. {formatSkillLevel(selectedNode.level, selectedNode.bonusLevel)} / {formatSkillLevel(selectedMaxLevel, selectedNode.bonusLevel)}
               </span>
             </div>
           </div>

@@ -1,4 +1,4 @@
-import { sanitizeName, sanitizeAndFormatDescription } from "../../utils/textFormat";
+import { sanitizeName, sanitizeAndFormatDescription, formatSkillLevel } from "../../utils/textFormat";
 import { SKILL_TYPE_CONFIG } from "../../constants/skillTypeConfig";
 
 // ── Bloc de description d'une forme (réutilisé dans SkillTreePanel aussi) ──
@@ -48,7 +48,7 @@ export function SkillForm({ form, color, isFirst }) {
             </span>
           </div>
           <div style={{ color: "#666", fontSize: "0.6rem", fontFamily: "Orbitron, sans-serif", marginTop: "2px" }}>
-            Niv. {form.level} / {form.maxLevel}
+            Niv. {formatSkillLevel(form.level, form.bonusLevel)} / {formatSkillLevel(form.maxLevel, form.bonusLevel)}
           </div>
         </div>
       </div>

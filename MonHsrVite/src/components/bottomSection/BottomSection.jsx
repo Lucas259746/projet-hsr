@@ -3,7 +3,7 @@ import RelicCard from "../relicComp/RelicCard";
 import SkillCard, { SkillForm } from "./SkillCard";
 import SkillTreePanel from "./skillTreePanel/SkillTreePanel";
 import useBottomSection from "./useBottomSection";
-import { sanitizeName, sanitizeAndFormatDescription } from "../../utils/textFormat";
+import { sanitizeName, sanitizeAndFormatDescription, formatSkillLevel } from "../../utils/textFormat";
 import { SKILL_TYPE_CONFIG } from "../../constants/skillTypeConfig";
 
 function RelicSetsPanel({ relicSets }) {
@@ -98,7 +98,7 @@ function SkillDetailPanel({ skill }) {
             {cfg.label}
             {skill.level != null && (
               <span style={{ color: "#666", marginLeft: "8px" }}>
-                Niv. {skill.level} / {skill.maxLevel}
+                Niv. {formatSkillLevel(skill.level, skill.bonusLevel)} / {formatSkillLevel(skill.maxLevel, skill.bonusLevel)}
               </span>
             )}
           </span>

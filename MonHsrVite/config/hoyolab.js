@@ -175,6 +175,34 @@ const fetchAvatarDetailWithRetry = async (uid, region, itemId, maxRetries = 3) =
 // lancer deux pipelines en parallèle — ce qui double le rythme de
 // requêtes vers HoYoLab et redéclenche le rate-limit.
 const inFlightProfiles = new Map();
+const inFlightBaseProfiles = new Map();
+const baseProfileCache = new Map();
+const BASE_PROFILE_CACHE_MS = 30_000;
+
+const fetchBaseProfile = async (uid, region) => {
+  const key = `${uid}:${region}`;
+  const cached = baseProfileCache.get(key);
+  if (cached && Date.now() - cached.createdAt < BASE_PROFILE_CACHE_MS) {
+    return cached.value;
+  }
+  if (inFlightBaseProfiles.has(key)) return inFlightBaseProfiles.get(key);
+
+  const promise = Promise.all([
+    fetchUserInfo(uid, region),
+    fetchOwnedAvatars(uid, region),
+  ]).then(([userInfo, ownedAvatars]) => {
+    const value = { userInfo, ownedAvatars };
+    baseProfileCache.set(key, { createdAt: Date.now(), value });
+    return value;
+  });
+
+  inFlightBaseProfiles.set(key, promise);
+  try {
+    return await promise;
+  } finally {
+    inFlightBaseProfiles.delete(key);
+  }
+};
 
 const fetchFullProfile = async (uid, region, { delayMs = 300 } = {}) => {
   const key = `${uid}:${region}`;
@@ -183,10 +211,7 @@ const fetchFullProfile = async (uid, region, { delayMs = 300 } = {}) => {
   }
 
   const promise = (async () => {
-    const [userInfo, ownedAvatars] = await Promise.all([
-      fetchUserInfo(uid, region),
-      fetchOwnedAvatars(uid, region),
-    ]);
+    const { userInfo, ownedAvatars } = await fetchBaseProfile(uid, region);
 
     const characters = [];
     for (const avatar of ownedAvatars) {
@@ -217,6 +242,8 @@ module.exports = {
   fetchAvatarList,
   fetchOwnedAvatars,
   fetchAvatarDetail,
+  fetchAvatarDetailWithRetry,
   fetchUserInfo,
   fetchFullProfile,
+  fetchBaseProfile,
 };

@@ -1,46 +1,46 @@
-// routes/api.js
 const express = require("express");
 const router = express.Router();
 
 const { fetchFullAvatarList } = require("../config/hoyolab");
-const { getUserData } = require("../utils/serializers");
+const { getUserData, getUserRoster, getCharacterData } = require("../utils/serializers");
 
-// ──────────────────────────────────────────────
-// GET /api/user/:userId
-// Profil sérialisé complet (format attendu par le frontend React)
-// ──────────────────────────────────────────────
-router.get("/user/:userId", async (req, res) => {
+async function sendUserProfile(req, res) {
   try {
     const { userId } = req.params;
     const { region = "prod_official_eur", language = "fr" } = req.query;
     const user = await getUserData(userId, region, language);
     res.json(user);
   } catch (error) {
-    console.error("Error:", error);
+    console.error("Profile request failed:", error);
     res.status(500).json({ error: error.message });
   }
-});
+}
 
-// ──────────────────────────────────────────────
-// GET /api/user/:userId/hoyolab-full
-// Alias identique à /user/:userId — conservé pour compat avec App.jsx
-// ──────────────────────────────────────────────
-router.get("/user/:userId/hoyolab-full", async (req, res) => {
+router.get("/user/:userId", sendUserProfile);
+router.get("/user/:userId/hoyolab-full", sendUserProfile);
+
+router.get("/user/:userId/hoyolab-roster", async (req, res) => {
   try {
     const { userId } = req.params;
-    const { region = "prod_official_eur", language = "fr" } = req.query;
-    const data = await getUserData(userId, region, language);
-    res.json(data);
+    const { region = "prod_official_eur" } = req.query;
+    res.json(await getUserRoster(userId, region));
   } catch (error) {
-    console.error("Error:", error);
+    console.error("Roster request failed:", error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// ──────────────────────────────────────────────
-// GET /api/user/:userId/hoyolab-raw
-// Données brutes HoYoLab (debug) — roster complet non sérialisé
-// ──────────────────────────────────────────────
+router.get("/user/:userId/character/:itemId", async (req, res) => {
+  try {
+    const { userId, itemId } = req.params;
+    const { region = "prod_official_eur", language = "fr" } = req.query;
+    res.json(await getCharacterData(userId, region, itemId, language));
+  } catch (error) {
+    console.error("Character detail request failed:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.get("/user/:userId/hoyolab-raw", async (req, res) => {
   try {
     const { userId } = req.params;
@@ -48,7 +48,7 @@ router.get("/user/:userId/hoyolab-raw", async (req, res) => {
     const data = await fetchFullAvatarList(userId, region);
     res.json(data);
   } catch (error) {
-    console.error("HoYoLab error:", error);
+    console.error("Raw HoYoLab request failed:", error);
     res.status(500).json({ error: error.message });
   }
 });

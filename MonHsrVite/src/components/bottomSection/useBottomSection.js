@@ -40,6 +40,7 @@ export default function useBottomSection(activeCharacter) {
       effect: null,
       level: n.level,
       maxLevel: n.maxLevel,
+      bonusLevel: n.bonusLevel || 0,
       description: n.description || "",
       simpleDesc: "",
     }));
